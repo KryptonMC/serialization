@@ -14,7 +14,7 @@ pluginManagement {
 
 rootProject.name = "serialization"
 
-sequenceOf("core").forEach {
+sequenceOf("core", "gson").forEach {
     include("serialization-$it")
     project(":serialization-$it").projectDir = file(it)
 }
