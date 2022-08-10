@@ -237,6 +237,11 @@ public final class GsonOps implements DataOps<JsonElement> {
         }
     }
 
+    @Override
+    public String toString() {
+        return "JSON";
+    }
+
     private static void error(final @NotNull String message) {
         throw new IllegalArgumentException(message);
     }

@@ -3,7 +3,9 @@ metadata.format.version = "1.1"
 [versions]
 annotations = "23.0.0"
 gson = "2.9.1"
+nbt = "3.4.1"
 
 [libraries]
 annotations = { group = "org.jetbrains", name = "annotations", version.ref = "annotations" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+nbt = { group = "org.kryptonmc", name = "nbt-common", version.ref = "nbt" }
