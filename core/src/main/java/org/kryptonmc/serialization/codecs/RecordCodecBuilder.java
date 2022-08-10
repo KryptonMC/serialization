@@ -61,7 +61,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
         final var builder = unbox(builderBox);
         return new MapCodec<>() {
             @Override
-            public <T> @NotNull O decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+            public <T> O decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
                 return builder.decoder.decode(input, ops);
             }
 
@@ -127,7 +127,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
                         },
                         new MapDecoder<>() {
                             @Override
-                            public <T> @NotNull R decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+                            public <T> R decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
                                 return f.decoder.decode(input, ops).apply(a.decoder.decode(input, ops));
                             }
 
@@ -175,7 +175,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
                     },
                     new MapDecoder<>() {
                         @Override
-                        public <T> @NotNull R decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+                        public <T> R decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
                             return f.decoder.decode(input, ops).apply(fa.decoder.decode(input, ops), fb.decoder.decode(input, ops));
                         }
 
@@ -226,7 +226,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
                     },
                     new MapDecoder<>() {
                         @Override
-                        public <T> @NotNull R decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+                        public <T> R decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
                             return f.decoder.decode(input, ops).apply(
                                     fa.decoder.decode(input, ops),
                                     fb.decoder.decode(input, ops),
@@ -286,7 +286,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
                     },
                     new MapDecoder<>() {
                         @Override
-                        public <T> @NotNull R decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+                        public <T> R decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
                             return f.decoder.decode(input, ops).apply(
                                     fa.decoder.decode(input, ops),
                                     fb.decoder.decode(input, ops),

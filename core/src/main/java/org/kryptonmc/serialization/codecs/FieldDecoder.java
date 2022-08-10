@@ -17,7 +17,7 @@ import org.kryptonmc.serialization.MapLike;
 public record FieldDecoder<A>(@NotNull String name, @NotNull Decoder<A> elementDecoder) implements MapDecoder<A> {
 
     @Override
-    public <T> @NotNull A decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+    public <T> A decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
         final var value = input.get(name);
         if (value == null) throw new IllegalArgumentException("No key " + name + " found in map " + input);
         return elementDecoder.decode(value, ops);

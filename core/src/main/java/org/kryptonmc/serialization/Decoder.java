@@ -24,7 +24,7 @@ public interface Decoder<A> {
     static <A> @NotNull MapDecoder<A> unit(final @NotNull Supplier<A> instance) {
         return new MapDecoder<>() {
             @Override
-            public <T> @NotNull A decode(@NotNull MapLike<T> input, @NotNull DataOps<T> ops) {
+            public <T> A decode(@NotNull MapLike<T> input, @NotNull DataOps<T> ops) {
                 return instance.get();
             }
 
@@ -35,7 +35,7 @@ public interface Decoder<A> {
         };
     }
 
-    <T> @NotNull A decode(final @NotNull T input, final @NotNull DataOps<T> ops);
+    <T> A decode(final @NotNull T input, final @NotNull DataOps<T> ops);
 
     @ApiStatus.NonExtendable
     default @NotNull MapDecoder<A> field(final @NotNull String name) {
@@ -46,7 +46,7 @@ public interface Decoder<A> {
     default <B> @NotNull Decoder<B> map(final @NotNull Function<? super A, ? extends B> function) {
         return new Decoder<>() {
             @Override
-            public <T> @NotNull B decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
+            public <T> B decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
                 return function.apply(Decoder.this.decode(input, ops));
             }
 

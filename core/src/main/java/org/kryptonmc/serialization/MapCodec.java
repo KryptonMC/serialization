@@ -26,7 +26,7 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
                                        final @NotNull Supplier<String> name) {
         return new MapCodec<A>() {
             @Override
-            public <T> @NotNull A decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+            public <T> A decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
                 return decoder.decode(input, ops);
             }
 
@@ -136,7 +136,7 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
     default @NotNull MapCodec<A> mapResult(final @NotNull ResultFunction<A> function) {
         return new MapCodec<A>() {
             @Override
-            public <T> @NotNull A decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+            public <T> A decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
                 try {
                     return function.apply(input, ops, Either.left(MapCodec.this.decode(input, ops)));
                 } catch (final Exception exception) {
@@ -172,7 +172,7 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
     record StandardCodec<A>(@NotNull MapCodec<A> codec) implements Codec<A> {
 
         @Override
-        public <T> @NotNull A decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
+        public <T> A decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
             return codec.decode(input, ops);
         }
 

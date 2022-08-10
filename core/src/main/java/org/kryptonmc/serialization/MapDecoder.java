@@ -14,16 +14,16 @@ import org.jetbrains.annotations.NotNull;
 @FunctionalInterface
 public interface MapDecoder<A> {
 
-    <T> @NotNull A decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops);
+    <T> A decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops);
 
-    default <T> @NotNull A decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
+    default <T> A decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
         return decode(ops.getMap(input), ops);
     }
 
     default <B> @NotNull MapDecoder<B> map(final @NotNull Function<? super A, ? extends B> function) {
         return new MapDecoder<>() {
             @Override
-            public <T> @NotNull B decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+            public <T> B decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
                 return function.apply(MapDecoder.this.decode(input, ops));
             }
 

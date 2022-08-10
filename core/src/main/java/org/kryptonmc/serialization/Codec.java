@@ -219,7 +219,7 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
     static <A> @NotNull Codec<A> of(final @NotNull Encoder<A> encoder, final @NotNull Decoder<A> decoder, final @NotNull String name) {
         return new Codec<A>() {
             @Override
-            public <T> @NotNull A decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
+            public <T> A decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
                 return decoder.decode(input, ops);
             }
 
@@ -399,7 +399,7 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
     default @NotNull Codec<A> mapResult(final ResultFunction<A> function) {
         return new Codec<>() {
             @Override
-            public <T> @NotNull A decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
+            public <T> A decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
                 try {
                     return function.apply(input, ops, Either.left(Codec.this.decode(input, ops)));
                 } catch (final Exception exception) {

@@ -54,7 +54,7 @@ public final class KeyDispatchCodec<K, V> implements MapCodec<V> {
     }
 
     @Override
-    public <T> @NotNull V decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+    public <T> V decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
         final var elementName = input.get(typeKey);
         if (elementName == null) throw new IllegalArgumentException("Input " + input + " does not contain required type key " + typeKey);
         final var key = keyCodec.decode(elementName, ops);
