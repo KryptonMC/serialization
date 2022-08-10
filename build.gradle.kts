@@ -4,5 +4,5 @@ plugins {
 
 allprojects {
     group = "org.kryptonmc"
-    version = "1.0.1"
+    version = "1.0.2"
 }

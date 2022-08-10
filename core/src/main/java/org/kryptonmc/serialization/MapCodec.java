@@ -14,6 +14,7 @@ import java.util.function.Supplier;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.kryptonmc.serialization.codecs.RecordCodecBuilder;
 import org.kryptonmc.util.Either;
 
 public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
@@ -49,6 +50,10 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
 
     static <A> @NotNull MapCodec<A> unit(final @NotNull Supplier<A> defaultValue) {
         return of(Encoder.empty(), Decoder.unit(defaultValue));
+    }
+
+    default <O> @NotNull RecordCodecBuilder<O, A> getting(final @NotNull Function<O, A> getter) {
+        return RecordCodecBuilder.of(getter, this);
     }
 
     @ApiStatus.NonExtendable
