@@ -217,14 +217,14 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
     }
 
     static <A> @NotNull Codec<A> of(final @NotNull Encoder<A> encoder, final @NotNull Decoder<A> decoder, final @NotNull String name) {
-        return new Codec<A>() {
+        return new Codec<>() {
             @Override
-            public <T> A decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
+            public <T> A decode(final T input, final @NotNull DataOps<T> ops) {
                 return decoder.decode(input, ops);
             }
 
             @Override
-            public <T> @NotNull T encode(final @NotNull A input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
+            public <T> T encode(final A input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
                 return encoder.encode(input, ops, prefix);
             }
 
@@ -352,7 +352,7 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
                                         final @NotNull Supplier<String> name) {
         return mapResult(new ResultFunction<>() {
             @Override
-            public <T> @NotNull A apply(final @NotNull T input, final @NotNull DataOps<T> ops, final @NotNull Either<A, Exception> resultOrError) {
+            public <T> A apply(final T input, final @NotNull DataOps<T> ops, final @NotNull Either<A, Exception> resultOrError) {
                 return resultOrError.map(Function.identity(), error -> {
                     onError.accept(error);
                     return value.get();
@@ -360,10 +360,14 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
             }
 
             @Override
-            public <T> @NotNull T coApply(final @NotNull A input, final @NotNull DataOps<T> ops, final @NotNull T result,
-                                          final @Nullable Exception exception) {
+            public <T> T coApply(final A input, final @NotNull DataOps<T> ops, final T result, final @Nullable Exception exception) {
                 if (exception != null) onError.accept(exception);
                 return result;
+            }
+
+            @Override
+            public String toString() {
+                return name.get();
             }
         });
     }
@@ -383,14 +387,18 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
     default @NotNull Codec<A> orElseGet(final @NotNull Supplier<A> value, final @NotNull Supplier<String> name) {
         return mapResult(new ResultFunction<>() {
             @Override
-            public <T> @NotNull A apply(final @NotNull T input, final @NotNull DataOps<T> ops, final @NotNull Either<A, Exception> resultOrError) {
+            public <T> A apply(final T input, final @NotNull DataOps<T> ops, final @NotNull Either<A, Exception> resultOrError) {
                 return resultOrError.map(Function.identity(), error -> value.get());
             }
 
             @Override
-            public <T> @NotNull T coApply(final @NotNull A input, final @NotNull DataOps<T> ops, final @NotNull T result,
-                                          final @Nullable Exception exception) {
+            public <T> T coApply(final A input, final @NotNull DataOps<T> ops, final T result, final @Nullable Exception exception) {
                 return result;
+            }
+
+            @Override
+            public String toString() {
+                return name.get();
             }
         });
     }
@@ -399,7 +407,7 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
     default @NotNull Codec<A> mapResult(final ResultFunction<A> function) {
         return new Codec<>() {
             @Override
-            public <T> A decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
+            public <T> A decode(final T input, final @NotNull DataOps<T> ops) {
                 try {
                     return function.apply(input, ops, Either.left(Codec.this.decode(input, ops)));
                 } catch (final Exception exception) {
@@ -408,7 +416,7 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
             }
 
             @Override
-            public <T> @NotNull T encode(final @NotNull A input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
+            public <T> T encode(final A input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
                 try {
                     return function.coApply(input, ops, Codec.this.encode(input, ops, prefix), null);
                 } catch (final Exception exception) {
@@ -425,8 +433,8 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
 
     interface ResultFunction<A> {
 
-        <T> @NotNull A apply(final @NotNull T input, final @NotNull DataOps<T> ops, final @NotNull Either<A, Exception> resultOrError);
+        <T> A apply(final T input, final @NotNull DataOps<T> ops, final @NotNull Either<A, Exception> resultOrError);
 
-        <T> @NotNull T coApply(final @NotNull A input, final @NotNull DataOps<T> ops, final @NotNull T result, final @Nullable Exception exception);
+        <T> T coApply(final A input, final @NotNull DataOps<T> ops, final T result, final @Nullable Exception exception);
     }
 }

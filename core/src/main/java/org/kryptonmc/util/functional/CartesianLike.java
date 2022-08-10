@@ -19,9 +19,9 @@ public interface CartesianLike<T extends K1, C, Mu extends CartesianLike.Mu> ext
         return (CartesianLike<F, C, Mu>) proofBox;
     }
 
-    <A> @NotNull App<Pair.Mu<C>, A> to(@NotNull App<T, A> input);
+    <A> @NotNull App<Pair.Mu<C>, A> to(final @NotNull App<T, A> input);
 
-    <A> @NotNull App<T, A> from(@NotNull App<Pair.Mu<C>, A> input);
+    <A> @NotNull App<T, A> from(final @NotNull App<Pair.Mu<C>, A> input);
 
     @Override
     default <F extends K1, A, B> @NotNull App<F, App<T, B>> traverse(

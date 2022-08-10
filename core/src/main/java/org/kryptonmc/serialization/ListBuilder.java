@@ -49,6 +49,7 @@ public non-sealed interface ListBuilder<T> extends CompoundTypeBuilder<T> {
             return this;
         }
 
+        @SuppressWarnings("NullableProblems")
         @Override
         public @NotNull T build(final @NotNull T prefix) {
             return ops.mergeToList(prefix, result);

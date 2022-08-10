@@ -32,8 +32,7 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
             }
 
             @Override
-            public @NotNull <T> RecordBuilder<T> encode(final @NotNull A input, final @NotNull DataOps<T> ops,
-                                                        final @NotNull RecordBuilder<T> prefix) {
+            public <T> @NotNull RecordBuilder<T> encode(final A input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> prefix) {
                 return encoder.encode(input, ops, prefix);
             }
 
@@ -82,8 +81,8 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
                                            final @NotNull Supplier<String> name) {
         return mapResult(new ResultFunction<A>() {
             @Override
-            public <T> @NotNull A apply(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops,
-                                        final @NotNull Either<A, Exception> resultOrError) {
+            public <T> A apply(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops,
+                               final @NotNull Either<A, Exception> resultOrError) {
                 return resultOrError.map(Function.identity(), error -> {
                     onError.accept(error);
                     return value.get();
@@ -91,7 +90,7 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
             }
 
             @Override
-            public @NotNull <T> RecordBuilder<T> coApply(final @NotNull A input, final @NotNull DataOps<T> ops,
+            public @NotNull <T> RecordBuilder<T> coApply(final A input, final @NotNull DataOps<T> ops,
                                                          final @NotNull RecordBuilder<T> result, final @Nullable Exception exception) {
                 if (exception != null) onError.accept(exception);
                 return result;
@@ -119,14 +118,13 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
     default @NotNull MapCodec<A> orElseGet(final @NotNull Supplier<? extends A> value, final @NotNull Supplier<String> name) {
         return mapResult(new ResultFunction<A>() {
             @Override
-            public <T> @NotNull A apply(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops,
-                                        final @NotNull Either<A, Exception> resultOrError) {
+            public <T> A apply(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops, final @NotNull Either<A, Exception> resultOrError) {
                 return resultOrError.map(Function.identity(), error -> value.get());
             }
 
             @Override
-            public @NotNull <T> RecordBuilder<T> coApply(final @NotNull A input, final @NotNull DataOps<T> ops,
-                                                         final @NotNull RecordBuilder<T> result, final @Nullable Exception exception) {
+            public @NotNull <T> RecordBuilder<T> coApply(final A input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> result,
+                                                         final @Nullable Exception exception) {
                 return result;
             }
 
@@ -168,10 +166,10 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
 
     interface ResultFunction<A> {
 
-        <T> @NotNull A apply(@NotNull MapLike<T> input, @NotNull DataOps<T> ops, @NotNull Either<A, Exception> resultOrError);
+        <T> A apply(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops, final @NotNull Either<A, Exception> resultOrError);
 
-        <T> @NotNull RecordBuilder<T> coApply(@NotNull A input, @NotNull DataOps<T> ops, @NotNull RecordBuilder<T> result,
-                                              @Nullable Exception exception);
+        <T> @NotNull RecordBuilder<T> coApply(final A input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> result,
+                                              final @Nullable Exception exception);
     }
 
     record StandardCodec<A>(@NotNull MapCodec<A> codec) implements Codec<A> {

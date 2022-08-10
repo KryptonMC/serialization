@@ -108,6 +108,7 @@ public non-sealed interface RecordBuilder<T> extends CompoundTypeBuilder<T> {
             builder.put(key, value);
         }
 
+        @SuppressWarnings("NullableProblems")
         @Override
         protected @NotNull T build(final @NotNull Map<T, T> builder, final @NotNull T prefix) {
             return ops().mergeToMap(prefix, builder);

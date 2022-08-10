@@ -35,7 +35,7 @@ public interface Decoder<A> {
         };
     }
 
-    <T> A decode(final @NotNull T input, final @NotNull DataOps<T> ops);
+    <T> A decode(final T input, final @NotNull DataOps<T> ops);
 
     @ApiStatus.NonExtendable
     default @NotNull MapDecoder<A> field(final @NotNull String name) {
@@ -46,7 +46,7 @@ public interface Decoder<A> {
     default <B> @NotNull Decoder<B> map(final @NotNull Function<? super A, ? extends B> function) {
         return new Decoder<>() {
             @Override
-            public <T> B decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
+            public <T> B decode(final T input, final @NotNull DataOps<T> ops) {
                 return function.apply(Decoder.this.decode(input, ops));
             }
 

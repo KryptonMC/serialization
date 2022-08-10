@@ -28,9 +28,9 @@ import org.kryptonmc.util.function.Function9;
 
 public interface Applicative<FN extends K1, Mu extends Applicative.Mu> extends Functor<FN, Mu> {
 
-    <A> @NotNull App<FN, A> point(@NotNull A a);
+    <A> @NotNull App<FN, A> point(final @NotNull A a);
 
-    <A, R> @NotNull Function<App<FN, A>, App<FN, R>> lift1(@NotNull App<FN, Function<A, R>> function);
+    <A, R> @NotNull Function<App<FN, A>, App<FN, R>> lift1(final @NotNull App<FN, Function<A, R>> function);
 
     default <A, B, R> @NotNull BiFunction<App<FN, A>, App<FN, B>, App<FN, R>> lift2(final @NotNull App<FN, BiFunction<A, B, R>> function) {
         return (fa, fb) -> ap2(function, fa, fb);

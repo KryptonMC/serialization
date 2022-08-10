@@ -19,7 +19,7 @@ public interface Encoder<A> {
     static <A> @NotNull MapEncoder<A> empty() {
         return new MapEncoder<>() {
             @Override
-            public @NotNull <T> RecordBuilder<T> encode(@NotNull A input, @NotNull DataOps<T> ops, @NotNull RecordBuilder<T> prefix) {
+            public @NotNull <T> RecordBuilder<T> encode(final A input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> prefix) {
                 return prefix;
             }
 
@@ -30,10 +30,10 @@ public interface Encoder<A> {
         };
     }
 
-    <T> @NotNull T encode(@NotNull A input, @NotNull DataOps<T> ops, @NotNull T prefix);
+    <T> T encode(final A input, final @NotNull DataOps<T> ops, final @NotNull T prefix);
 
     @ApiStatus.NonExtendable
-    default <T> @NotNull T encodeStart(final @NotNull A input, final @NotNull DataOps<T> ops) {
+    default <T> T encodeStart(final A input, final @NotNull DataOps<T> ops) {
         return encode(input, ops, ops.empty());
     }
 
@@ -46,7 +46,7 @@ public interface Encoder<A> {
     default <B> @NotNull Encoder<B> comap(final @NotNull Function<? super B, ? extends A> function) {
         return new Encoder<>() {
             @Override
-            public <T> @NotNull T encode(final @NotNull B input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
+            public <T> T encode(final B input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
                 return Encoder.this.encode(function.apply(input), ops, prefix);
             }
 

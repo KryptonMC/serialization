@@ -17,7 +17,7 @@ import org.kryptonmc.util.Pair;
 public interface MapLike<T> {
 
     static <T> @NotNull MapLike<T> forMap(final @NotNull Map<T, T> map, final @NotNull DataOps<T> ops) {
-        return new MapLike<T>() {
+        return new MapLike<>() {
             @Override
             public @Nullable T get(final @NotNull T key) {
                 return map.get(key);

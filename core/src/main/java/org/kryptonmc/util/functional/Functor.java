@@ -13,7 +13,7 @@ import org.jetbrains.annotations.NotNull;
 
 public interface Functor<F extends K1, Mu extends Functor.Mu> extends Kind1<F, Mu> {
 
-    <T, R> @NotNull App<F, R> map(@NotNull Function<? super T, ? extends R> function, @NotNull App<F, T> argument);
+    <T, R> @NotNull App<F, R> map(final @NotNull Function<? super T, ? extends R> function, final @NotNull App<F, T> argument);
 
     interface Mu extends Kind1.Mu {}
 }

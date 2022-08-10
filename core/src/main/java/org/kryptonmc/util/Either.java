@@ -39,12 +39,12 @@ public sealed interface Either<L, R> extends App<Either.Mu<R>, L> permits Left, 
     @NotNull Optional<R> right();
 
     @Contract(value = "_ -> this", pure = true)
-    @NotNull Either<L, R> ifLeft(@NotNull Consumer<? super L> consumer);
+    @NotNull Either<L, R> ifLeft(final @NotNull Consumer<? super L> consumer);
 
     @Contract(value = "_ -> this", pure = true)
-    @NotNull Either<L, R> ifRight(@NotNull Consumer<? super R> consumer);
+    @NotNull Either<L, R> ifRight(final @NotNull Consumer<? super R> consumer);
 
-    <T> @NotNull T map(@NotNull Function<? super L, ? extends T> leftMapper, @NotNull Function<? super R, ? extends T> rightMapper);
+    <T> @NotNull T map(final @NotNull Function<? super L, ? extends T> leftMapper, final @NotNull Function<? super R, ? extends T> rightMapper);
 
     default <T> @NotNull Either<T, R> mapLeft(final @NotNull Function<? super L, ? extends T> mapper) {
         return map(value -> left(mapper.apply(value)), Either::right);
@@ -54,7 +54,8 @@ public sealed interface Either<L, R> extends App<Either.Mu<R>, L> permits Left, 
         return map(Either::left, value -> right(mapper.apply(value)));
     }
 
-    <A, B> @NotNull Either<A, B> mapBoth(@NotNull Function<? super L, ? extends A> leftMapper, @NotNull Function<? super R, ? extends B> rightMapper);
+    <A, B> @NotNull Either<A, B> mapBoth(final @NotNull Function<? super L, ? extends A> leftMapper,
+                                         final @NotNull Function<? super R, ? extends B> rightMapper);
 
     default <L2> @NotNull Either<L2, R> flatMap(final @NotNull Function<L, Either<L2, R>> function) {
         return map(function, Either::right);

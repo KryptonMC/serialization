@@ -20,13 +20,13 @@ import org.kryptonmc.util.functional.CartesianLike;
 import org.kryptonmc.util.functional.K1;
 import org.kryptonmc.util.functional.Traversable;
 
-public record Pair<F, S>(@Nullable F first, @Nullable S second) implements App<Pair.Mu<S>, F> {
+public record Pair<F, S>(F first, S second) implements App<Pair.Mu<S>, F> {
 
     public static <F, S> @NotNull Pair<F, S> unbox(final @NotNull App<Mu<S>, F> box) {
         return (Pair<F, S>) box;
     }
 
-    public static <F, S> @NotNull Pair<F, S> of(final @Nullable F first, final @Nullable S second) {
+    public static <F, S> @NotNull Pair<F, S> of(final F first, final S second) {
         return new Pair<>(first, second);
     }
 

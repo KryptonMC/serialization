@@ -66,8 +66,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
             }
 
             @Override
-            public @NotNull <T> RecordBuilder<T> encode(final @NotNull O input, final @NotNull DataOps<T> ops,
-                                                        final @NotNull RecordBuilder<T> prefix) {
+            public @NotNull <T> RecordBuilder<T> encode(final O input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> prefix) {
                 return builder.encoder.apply(input).encode(input, ops, prefix);
             }
 
@@ -112,7 +111,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
                             final var aFromO = a.getter.apply(o);
                             return new MapEncoder<R>() {
                                 @Override
-                                public @NotNull <T> RecordBuilder<T> encode(final @NotNull R input, final @NotNull DataOps<T> ops,
+                                public @NotNull <T> RecordBuilder<T> encode(final R input, final @NotNull DataOps<T> ops,
                                                                             final @NotNull RecordBuilder<T> prefix) {
                                     aEncoder.encode(aFromO, ops, prefix);
                                     fEncoder.encode(a1 -> input, ops, prefix);
@@ -159,7 +158,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
                         //noinspection Convert2Diamond
                         return new MapEncoder<R>() {
                             @Override
-                            public @NotNull <T> RecordBuilder<T> encode(final @NotNull R input, final @NotNull DataOps<T> ops,
+                            public @NotNull <T> RecordBuilder<T> encode(final R input, final @NotNull DataOps<T> ops,
                                                                         final @NotNull RecordBuilder<T> prefix) {
                                 aEncoder.encode(aFromO, ops, prefix);
                                 bEncoder.encode(bFromO, ops, prefix);
@@ -209,7 +208,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
                         //noinspection Convert2Diamond
                         return new MapEncoder<R>() {
                             @Override
-                            public @NotNull <T> RecordBuilder<T> encode(final @NotNull R input, final @NotNull DataOps<T> ops,
+                            public @NotNull <T> RecordBuilder<T> encode(final R input, final @NotNull DataOps<T> ops,
                                                                         final @NotNull RecordBuilder<T> prefix) {
                                 aEncoder.encode(aFromO, ops, prefix);
                                 bEncoder.encode(bFromO, ops, prefix);
@@ -268,7 +267,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
                         //noinspection Convert2Diamond
                         return new MapEncoder<R>() {
                             @Override
-                            public @NotNull <T> RecordBuilder<T> encode(final @NotNull R input, final @NotNull DataOps<T> ops,
+                            public @NotNull <T> RecordBuilder<T> encode(final R input, final @NotNull DataOps<T> ops,
                                                                         final @NotNull RecordBuilder<T> prefix) {
                                 aEncoder.encode(aFromO, ops, prefix);
                                 bEncoder.encode(bFromO, ops, prefix);
@@ -317,7 +316,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
                         private final MapEncoder<T> encoder = unbox.encoder.apply(o);
 
                         @Override
-                        public @NotNull <U> RecordBuilder<U> encode(final @NotNull R input, final @NotNull DataOps<U> ops,
+                        public @NotNull <U> RecordBuilder<U> encode(final R input, final @NotNull DataOps<U> ops,
                                                                     final @NotNull RecordBuilder<U> prefix) {
                             return encoder.encode(getter.apply(o), ops, prefix);
                         }

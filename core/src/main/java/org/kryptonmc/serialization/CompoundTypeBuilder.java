@@ -15,5 +15,5 @@ public sealed interface CompoundTypeBuilder<T> permits ListBuilder, RecordBuilde
 
     @NotNull DataOps<T> ops();
 
-    @NotNull T build(@Nullable T prefix);
+    @NotNull T build(final @Nullable T prefix);
 }

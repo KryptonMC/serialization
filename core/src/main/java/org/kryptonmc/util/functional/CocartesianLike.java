@@ -19,9 +19,9 @@ public interface CocartesianLike<T extends K1, C, Mu extends CocartesianLike.Mu>
         return (CocartesianLike<F, C, Mu>) proofBox;
     }
 
-    <A> @NotNull App<Either.Mu<C>, A> to(@NotNull App<T, A> input);
+    <A> @NotNull App<Either.Mu<C>, A> to(final @NotNull App<T, A> input);
 
-    <A> @NotNull App<T, A> from(@NotNull App<Either.Mu<C>, A> input);
+    <A> @NotNull App<T, A> from(final @NotNull App<Either.Mu<C>, A> input);
 
     @Override
     default @NotNull <F extends K1, A, B> App<F, App<T, B>> traverse(
