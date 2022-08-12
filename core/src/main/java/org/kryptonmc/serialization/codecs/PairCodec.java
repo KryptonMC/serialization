@@ -13,6 +13,14 @@ import org.kryptonmc.serialization.Codec;
 import org.kryptonmc.serialization.DataOps;
 import org.kryptonmc.util.Pair;
 
+/**
+ * A codec that encodes/decodes a pair of values.
+ *
+ * @param first The first codec.
+ * @param second The second value.
+ * @param <F> The first type.
+ * @param <S> The second type.
+ */
 public record PairCodec<F, S>(@NotNull Codec<F> first, @NotNull Codec<S> second) implements Codec<Pair<F, S>> {
 
     @Override

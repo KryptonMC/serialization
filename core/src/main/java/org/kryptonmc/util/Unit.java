@@ -8,6 +8,10 @@
  */
 package org.kryptonmc.util;
 
+/**
+ * A constant value. This is like {@link Void}, but it is a singleton that can
+ * be returned.
+ */
 public enum Unit {
 
     INSTANCE;

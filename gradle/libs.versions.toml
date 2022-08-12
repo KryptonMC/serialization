@@ -1,11 +1,32 @@
 metadata.format.version = "1.1"
 
 [versions]
+# Module dependency versions
 annotations = "23.0.0"
 gson = "2.9.1"
 nbt = "3.4.1"
 
+# Plugin dependency versions
+contractValidator = "1.0.1"
+errorprone = "2.14.0"
+stylecheck = "0.1"
+checkstyle = "9.3"
+
+# Plugin versions
+errorpronePlugin = "2.0.2"
+indra = "2.1.1"
+
 [libraries]
+# Module dependencies
 annotations = { group = "org.jetbrains", name = "annotations", version.ref = "annotations" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 nbt = { group = "org.kryptonmc", name = "nbt-common", version.ref = "nbt" }
+
+# Plugin dependencies
+contractValidator = { group = "ca.stellardrift", name = "contract-validator", version.ref = "contractValidator" }
+errorprone = { group = "com.google.errorprone", name = "error_prone_core", version.ref = "errorprone" }
+stylecheck = { group = "ca.stellardrift", name = "stylecheck", version.ref = "stylecheck" }
+
+# Plugins
+plugin-errorprone = { group = "net.ltgt.gradle", name = "gradle-errorprone-plugin", version.ref = "errorpronePlugin" }
+plugin-indra = { group = "net.kyori", name = "indra-common", version.ref = "indra" }

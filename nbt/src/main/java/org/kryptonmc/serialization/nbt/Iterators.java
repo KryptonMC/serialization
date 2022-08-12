@@ -36,12 +36,13 @@ final class Iterators {
         };
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> @NotNull PeekingIterator<T> peekingIterator(final @NotNull Iterator<? extends T> iterator) {
-        if (iterator instanceof PeekingImpl<?>) {
-            //noinspection unchecked
-            return (PeekingImpl<T>) iterator;
-        }
+        if (iterator instanceof PeekingImpl<?>) return (PeekingImpl<T>) iterator;
         return new PeekingImpl<>(iterator);
+    }
+
+    private Iterators() {
     }
 
     private static final class PeekingImpl<E> implements PeekingIterator<E> {
@@ -50,7 +51,7 @@ final class Iterators {
         private boolean hasPeeked;
         private @Nullable E peekedElement;
 
-        public PeekingImpl(final Iterator<? extends E> iterator) {
+        PeekingImpl(final Iterator<? extends E> iterator) {
             this.iterator = iterator;
         }
 

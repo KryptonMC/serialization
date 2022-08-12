@@ -16,6 +16,18 @@ import org.kryptonmc.serialization.MapCodec;
 import org.kryptonmc.serialization.MapLike;
 import org.kryptonmc.serialization.RecordBuilder;
 
+/**
+ * A codec that will encode/decode a field with the given name to/from a map
+ * optionally, returning {@link Optional#empty()} if the field is not present,
+ * or the element codec throws an error when decoding.
+ *
+ * <p>This is an optimisation of
+ * {@code Codec.either(elementCodec.field(name), Codec.EMPTY)}</p>
+ *
+ * @param name The field name.
+ * @param elementCodec The field value codec.
+ * @param <A> The field value type.
+ */
 public record OptionalFieldCodec<A>(@NotNull String name, @NotNull Codec<A> elementCodec) implements MapCodec<Optional<A>> {
 
     @Override

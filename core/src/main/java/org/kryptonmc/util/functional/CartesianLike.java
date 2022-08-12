@@ -14,11 +14,6 @@ import org.kryptonmc.util.Pair;
 
 public interface CartesianLike<T extends K1, C, Mu extends CartesianLike.Mu> extends Functor<T, Mu>, Traversable<T, Mu> {
 
-    static <F extends K1, C, Mu extends CartesianLike.Mu> @NotNull CartesianLike<F, C, Mu> unbox(final @NotNull App<Mu, F> proofBox) {
-        // noinspection unchecked
-        return (CartesianLike<F, C, Mu>) proofBox;
-    }
-
     <A> @NotNull App<Pair.Mu<C>, A> to(final @NotNull App<T, A> input);
 
     <A> @NotNull App<T, A> from(final @NotNull App<Pair.Mu<C>, A> input);
@@ -26,7 +21,7 @@ public interface CartesianLike<T extends K1, C, Mu extends CartesianLike.Mu> ext
     @Override
     default <F extends K1, A, B> @NotNull App<F, App<T, B>> traverse(
             final @NotNull Applicative<F, ?> applicative, final @NotNull Function<A, App<F, B>> function, final @NotNull App<T, A> input) {
-        return applicative.map(this::from, (new Pair.Instance<C>()).traverse(applicative, function, to(input)));
+        return applicative.map(this::from, new Pair.Instance<C>().traverse(applicative, function, to(input)));
     }
 
     interface Mu extends Functor.Mu, Traversable.Mu {}

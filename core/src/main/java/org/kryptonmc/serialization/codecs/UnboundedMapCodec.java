@@ -13,6 +13,14 @@ import org.jetbrains.annotations.NotNull;
 import org.kryptonmc.serialization.Codec;
 import org.kryptonmc.serialization.DataOps;
 
+/**
+ * A simple codec that processes a map of values.
+ *
+ * @param keyCodec The key codec.
+ * @param valueCodec The value codec.
+ * @param <K> The key type.
+ * @param <V> The value type.
+ */
 public record UnboundedMapCodec<K, V>(@NotNull Codec<K> keyCodec, @NotNull Codec<V> valueCodec) implements BaseMapCodec<K, V>, Codec<Map<K, V>> {
 
     @Override

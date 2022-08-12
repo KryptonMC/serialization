@@ -8,4 +8,5 @@
  */
 package org.kryptonmc.util.functional;
 
-public interface App<F extends K1, A> {}
+public interface App<F extends K1, A> {
+}

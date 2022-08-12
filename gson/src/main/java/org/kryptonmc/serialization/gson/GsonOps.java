@@ -16,7 +16,6 @@ import com.google.gson.JsonPrimitive;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -29,6 +28,9 @@ import org.kryptonmc.serialization.MapLike;
 import org.kryptonmc.serialization.RecordBuilder;
 import org.kryptonmc.util.Pair;
 
+/**
+ * The standard data operations for the Gson JSON library.
+ */
 public final class GsonOps implements DataOps<JsonElement> {
 
     public static final @NotNull GsonOps INSTANCE = new GsonOps();
@@ -69,7 +71,7 @@ public final class GsonOps implements DataOps<JsonElement> {
     @Override
     public @NotNull Stream<JsonElement> getStream(final @NotNull JsonElement input) {
         if (input.isJsonArray()) {
-            return StreamSupport.stream(input.getAsJsonArray().spliterator(), false).map(JsonUtil::orNull);
+            return StreamSupport.stream(input.getAsJsonArray().spliterator(), false).map(GsonOps::orNull);
         }
         throw new IllegalArgumentException("Provided input for getStream is not a json array! Input: " + input);
     }
@@ -79,7 +81,7 @@ public final class GsonOps implements DataOps<JsonElement> {
         if (input.isJsonArray()) {
             return consumer -> {
                 for (final var element : input.getAsJsonArray()) {
-                    consumer.accept(JsonUtil.orNull(element));
+                    consumer.accept(orNull(element));
                 }
             };
         }
@@ -108,7 +110,7 @@ public final class GsonOps implements DataOps<JsonElement> {
     public @NotNull Stream<Pair<JsonElement, JsonElement>> getMapValues(final @NotNull JsonElement input) {
         if (!input.isJsonObject()) error("Provided input for getMapValues is not a json object! Input: " + input);
         return input.getAsJsonObject().entrySet().stream()
-                .map(entry -> Pair.of(new JsonPrimitive(entry.getKey()), JsonUtil.orNull(entry.getValue())));
+                .map(entry -> Pair.of(new JsonPrimitive(entry.getKey()), orNull(entry.getValue())));
     }
 
     @Override
@@ -116,7 +118,7 @@ public final class GsonOps implements DataOps<JsonElement> {
         if (!input.isJsonObject()) error("Provided input for getMapEntries is not a json object! Input: " + input);
         return consumer -> {
             for (final var entry : input.getAsJsonObject().entrySet()) {
-                consumer.accept(createString(entry.getKey()), JsonUtil.orNull(entry.getValue()));
+                consumer.accept(createString(entry.getKey()), orNull(entry.getValue()));
             }
         };
     }
@@ -133,7 +135,7 @@ public final class GsonOps implements DataOps<JsonElement> {
 
             @Override
             public @Nullable JsonElement get(final @NotNull String key) {
-                return JsonUtil.orNull(object.get(key));
+                return orNull(object.get(key));
             }
 
             @Override
@@ -244,5 +246,9 @@ public final class GsonOps implements DataOps<JsonElement> {
 
     private static void error(final @NotNull String message) {
         throw new IllegalArgumentException(message);
+    }
+
+    private static @Nullable JsonElement orNull(final @NotNull JsonElement element) {
+        return element.isJsonNull() ? null : element;
     }
 }

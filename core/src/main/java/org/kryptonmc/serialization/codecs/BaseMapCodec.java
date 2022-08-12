@@ -18,12 +18,37 @@ import org.kryptonmc.serialization.MapLike;
 import org.kryptonmc.serialization.RecordBuilder;
 import org.kryptonmc.util.Pair;
 
-public interface BaseMapCodec<K, V> {
+/**
+ * The base map codec implementation that contains the common logic for the
+ * simple and unbounded map codecs.
+ *
+ * @param <K> The key type.
+ * @param <V> The value type.
+ */
+public sealed interface BaseMapCodec<K, V> permits SimpleMapCodec, UnboundedMapCodec {
 
+    /**
+     * Gets the codec used to encode and decode the keys of the map.
+     *
+     * @return The key codec.
+     */
     @NotNull Codec<K> keyCodec();
 
+    /**
+     * Gets the codec used to encode and decode the values of the map.
+     *
+     * @return The value codec.
+     */
     @NotNull Codec<V> valueCodec();
 
+    /**
+     * Decodes the input map to an immutable map with the given ops.
+     *
+     * @param input The input map to decode.
+     * @param ops The data operations.
+     * @param <T> The data type.
+     * @return The decoded map.
+     */
     default <T> @NotNull Map<K, V> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
         final var read = new HashMap<K, V>();
         final var failed = new ArrayList<Pair<T, T>>();
@@ -38,6 +63,16 @@ public interface BaseMapCodec<K, V> {
         return Map.copyOf(read);
     }
 
+    /**
+     * Encodes the input map by appending all the entries to the prefix record
+     * builder for the data type and returning the resulting record builder.
+     *
+     * @param input The input map.
+     * @param ops The data operations.
+     * @param prefix The record builder to append the map entries to.
+     * @param <T> The data type.
+     * @return The resulting record builder.
+     */
     default <T> @NotNull RecordBuilder<T> encode(final @NotNull Map<K, V> input, final @NotNull DataOps<T> ops,
                                                  final @NotNull RecordBuilder<T> prefix) {
         for (final var entry : input.entrySet()) {

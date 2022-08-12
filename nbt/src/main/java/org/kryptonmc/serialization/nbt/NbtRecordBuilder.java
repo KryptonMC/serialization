@@ -17,7 +17,7 @@ import org.kryptonmc.serialization.RecordBuilder;
 
 final class NbtRecordBuilder extends RecordBuilder.AbstractStringBuilder<Tag, CompoundTag.Builder> {
 
-    public NbtRecordBuilder() {
+    NbtRecordBuilder() {
         super(NbtOps.INSTANCE);
     }
 

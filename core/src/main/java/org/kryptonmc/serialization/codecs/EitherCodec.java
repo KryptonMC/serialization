@@ -13,6 +13,25 @@ import org.kryptonmc.serialization.Codec;
 import org.kryptonmc.serialization.DataOps;
 import org.kryptonmc.util.Either;
 
+/**
+ * A codec that will encode/decode the value with the left codec if it can, or
+ * fallback to encoding/decoding the value with the right codec if the left
+ * codec fails.
+ *
+ * <p>For decoding, this will try to decode the left value with the left codec,
+ * and if an exception occurs, it will decode the value with the right codec.
+ * This will, however, not swallow exceptions from the right codec. If it fails
+ * to decode the value, the error will be propagated up the stack as normal.</p>
+ *
+ * <p>For encoding, this will map the input, encoding with the left codec if
+ * the value is left, and encoding with the right codec if the value is right.
+ * This will always propagate encoding errors up the stack.</p>
+ *
+ * @param left The left codec.
+ * @param right The right codec.
+ * @param <L> The left type.
+ * @param <R> The right type.
+ */
 public record EitherCodec<L, R>(@NotNull Codec<L> left, @NotNull Codec<R> right) implements Codec<Either<L, R>> {
 
     @Override

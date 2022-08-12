@@ -15,6 +15,15 @@ import org.kryptonmc.serialization.MapLike;
 import org.kryptonmc.serialization.RecordBuilder;
 import org.kryptonmc.util.Either;
 
+/**
+ * This is a map codec variant of {@link EitherCodec}.
+ *
+ * @param left The left map codec.
+ * @param right The right map codec.
+ * @param <L> The left type.
+ * @param <R> The right type.
+ * @see EitherCodec
+ */
 public record EitherMapCodec<L, R>(@NotNull MapCodec<L> left, @NotNull MapCodec<R> right) implements MapCodec<Either<L, R>> {
 
     @Override

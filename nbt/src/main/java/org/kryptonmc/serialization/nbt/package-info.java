@@ -7,6 +7,7 @@
  * For more details, please reference the LICENSE file in the top-level directory.
  */
 /**
- * This package contains all the core types for serialization of generic data.
+ * This package contains the implementation of data operations for the Krypton
+ * NBT library.
  */
-package org.kryptonmc.serialization;
+package org.kryptonmc.serialization.nbt;

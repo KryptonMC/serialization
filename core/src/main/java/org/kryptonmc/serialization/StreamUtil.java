@@ -33,4 +33,7 @@ final class StreamUtil {
             return Stream.empty();
         }
     }
+
+    private StreamUtil() {
+    }
 }

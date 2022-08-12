@@ -11,9 +11,6 @@ package org.kryptonmc.serialization.nbt;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 import org.jetbrains.annotations.NotNull;
 import org.kryptonmc.nbt.ByteArrayTag;
 import org.kryptonmc.nbt.ByteTag;
@@ -55,6 +52,7 @@ final class NbtUtil {
 
     // This is a classic. ByteBuffers can be heap or direct, and because of how direct buffers work, there isn't an intermediary
     // array for us to retrieve. Therefore, we have to extract the bytes manually in to our own array.
+    @SuppressWarnings("ByteBufferBackingArray")
     public static byte@NotNull[] toArray(final @NotNull ByteBuffer input) {
         final byte[] result;
         if (input.hasArray()) {
@@ -64,5 +62,8 @@ final class NbtUtil {
             input.get(result, 0, result.length);
         }
         return result;
+    }
+
+    private NbtUtil() {
     }
 }

@@ -23,6 +23,13 @@ import org.kryptonmc.util.Pair;
 
 public interface DataOps<T> {
 
+    /**
+     * Returns some empty type for these operations.
+     *
+     * <p>The empty type must be a constant singleton so that referential
+     * equality to it will always work, and it must not be null, however it can
+     * represent null, as is the case for JSON operations.</p>
+     */
     @NotNull T empty();
 
     default boolean getBooleanValue(final @NotNull T input) {

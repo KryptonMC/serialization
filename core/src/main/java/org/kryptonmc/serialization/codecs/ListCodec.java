@@ -14,6 +14,14 @@ import org.jetbrains.annotations.NotNull;
 import org.kryptonmc.serialization.Codec;
 import org.kryptonmc.serialization.DataOps;
 
+/**
+ * A codec that will encode a list of values by encoding each value with the
+ * given element codec, and decode an input to a list of values by decoding
+ * each value with the given element codec.
+ *
+ * @param elementCodec The element codec.
+ * @param <A> The element type.
+ */
 public record ListCodec<A>(@NotNull Codec<A> elementCodec) implements Codec<List<A>> {
 
     @Override

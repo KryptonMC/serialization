@@ -14,11 +14,6 @@ import org.kryptonmc.util.Either;
 
 public interface CocartesianLike<T extends K1, C, Mu extends CocartesianLike.Mu> extends Functor<T, Mu>, Traversable<T, Mu> {
 
-    static <F extends K1, C, Mu extends CocartesianLike.Mu> @NotNull CocartesianLike<F, C, Mu> unbox(final @NotNull App<Mu, F> proofBox) {
-        // noinspection unchecked
-        return (CocartesianLike<F, C, Mu>) proofBox;
-    }
-
     <A> @NotNull App<Either.Mu<C>, A> to(final @NotNull App<T, A> input);
 
     <A> @NotNull App<T, A> from(final @NotNull App<Either.Mu<C>, A> input);
@@ -26,7 +21,7 @@ public interface CocartesianLike<T extends K1, C, Mu extends CocartesianLike.Mu>
     @Override
     default @NotNull <F extends K1, A, B> App<F, App<T, B>> traverse(
             final @NotNull Applicative<F, ?> applicative, final @NotNull Function<A, App<F, B>> function, final @NotNull App<T, A> input) {
-        return applicative.map(this::from, (new Either.Instance<C>()).traverse(applicative, function, to(input)));
+        return applicative.map(this::from, new Either.Instance<C>().traverse(applicative, function, to(input)));
     }
 
     interface Mu extends Functor.Mu, Traversable.Mu {}

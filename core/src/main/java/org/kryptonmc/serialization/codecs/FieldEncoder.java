@@ -14,6 +14,14 @@ import org.kryptonmc.serialization.Encoder;
 import org.kryptonmc.serialization.MapEncoder;
 import org.kryptonmc.serialization.RecordBuilder;
 
+/**
+ * A map encoder that will encode the input value with the given element
+ * encoder and add it to the provided prefix with the given name as the key.
+ *
+ * @param name The field name.
+ * @param elementEncoder The field value encoder.
+ * @param <A> The input type.
+ */
 public record FieldEncoder<A>(@NotNull String name, @NotNull Encoder<A> elementEncoder) implements MapEncoder<A> {
 
     @Override

@@ -46,7 +46,7 @@ public interface Applicative<FN extends K1, Mu extends Applicative.Mu> extends F
 
     default <A, B, R> @NotNull App<FN, R> ap2(final @NotNull App<FN, BiFunction<A, B, R>> function, final @NotNull App<FN, A> a,
                                               final @NotNull App<FN, B> b) {
-        Function<BiFunction<A, B, R>, Function<A, Function<B, R>>> curry = f -> a1 -> b1 -> f.apply(a1, b1);
+        final Function<BiFunction<A, B, R>, Function<A, Function<B, R>>> curry = f -> a1 -> b1 -> f.apply(a1, b1);
         return ap(ap(map(curry, function), a), b);
     }
 

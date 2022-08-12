@@ -17,7 +17,7 @@ import org.kryptonmc.serialization.RecordBuilder;
 
 final class JsonRecordBuilder extends RecordBuilder.AbstractStringBuilder<JsonElement, JsonObject> {
 
-    public JsonRecordBuilder() {
+    JsonRecordBuilder() {
         super(GsonOps.INSTANCE);
     }
 

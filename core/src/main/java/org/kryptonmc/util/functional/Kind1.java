@@ -17,12 +17,7 @@ import org.jetbrains.annotations.NotNull;
  * right amount of parameters, all of the correct type, when we want to call
  * the constructor.
  */
-public interface Kind1<FN extends K1, Mu extends Kind1.Mu> {
-
-    static <F extends K1, Proof extends Kind1.Mu> @NotNull Kind1<F, Proof> unbox(final @NotNull App<Proof, F> proofBox) {
-        // noinspection unchecked
-        return (Kind1<F, Proof>) proofBox;
-    }
+public interface Kind1<FN extends K1, Mu extends Kind1.Mu> extends App<Mu, FN> {
 
     default <A> Products.@NotNull P1<FN, A> group(final @NotNull App<FN, A> a) {
         return new Products.P1<>(a);

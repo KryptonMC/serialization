@@ -26,33 +26,100 @@ import org.kryptonmc.util.functional.App;
 import org.kryptonmc.util.functional.Applicative;
 import org.kryptonmc.util.functional.K1;
 
+/**
+ * A builder for building codecs for complex types that are composed of other
+ * codecs.
+ *
+ * <p>This is very powerful, as it allows easy composition of multiple codecs
+ * for complex types, without needing to write any imperative logic. These are
+ * written in a general style, as follows:</p>
+ * <pre>
+ * public record Person(String name, int age) {
+ *
+ *     public static final Codec&lt;MyComplexType&gt; CODEC = RecordCodecBuilder.create(instance -> {
+ *         instance.group(
+ *             Codec.STRING.field("name").getting(Person::name),
+ *             Codec.INT.field("age").getting(Person::age)
+ *         ).apply(instance, Person::new);
+ *     });
+ * }
+ * </pre>
+ *
+ * <p>For a person with a name of "Joe Bloggs" and an age of 21, this would
+ * produce the following result, shown in JSON for demonstration:</p>
+ * <pre>
+ * {
+ *     "name": "Joe Bloggs",
+ *     "age": 21
+ * }
+ * </pre>
+ *
+ * <p>The advantage to this approach over a more conventional imperative-style
+ * approach is the apparent lack of code repetition. In an imperative-style
+ * codec, encoder and decoder logic is often duplicated, when all we want is
+ * to describe how the abstract data transforms to and from our complex type.</p>
+ *
+ * <p>This more functional-style approach allows us to just describe how to
+ * transform our complex type to data and how to transform data to our complex
+ * type, and does not require us to specify exactly how the serialization is
+ * done.</p>
+ *
+ * @param <O> The input type.
+ * @param <F> The function type.
+ */
 public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu<O>, F> {
 
-    public static <O, F> @NotNull RecordCodecBuilder<O, F> unbox(final @NotNull App<Mu<O>, F> box) {
-        return (RecordCodecBuilder<O, F>) box;
-    }
-
+    /**
+     * Creates a new instance for the record codec builder applicative.
+     *
+     * @param <O> The input type.
+     * @return A new instance.
+     */
     public static <O> @NotNull Instance<O> instance() {
         return new Instance<>();
     }
 
-    public static <O, F> @NotNull RecordCodecBuilder<O, F> of(final @NotNull Function<O, F> getter, final @NotNull String name,
-                                                              final @NotNull Codec<F> fieldCodec) {
-        return of(getter, fieldCodec.field(name));
-    }
-
+    @SuppressWarnings("MissingJavadocMethod")
     public static <O, F> @NotNull RecordCodecBuilder<O, F> of(final @NotNull Function<O, F> getter, final @NotNull MapCodec<F> codec) {
         return new RecordCodecBuilder<>(getter, o -> codec, codec);
     }
 
+    /**
+     * Creates a new record codec builder that uses the given instance as the
+     * result of decoding the data to the complex type, and does nothing when
+     * encoding objects to data.
+     *
+     * @param instance The instance to use.
+     * @param <O> The input type.
+     * @param <F> The function type.
+     * @return The record codec builder.
+     */
     public static <O, F> @NotNull RecordCodecBuilder<O, F> point(final @NotNull F instance) {
         return new RecordCodecBuilder<>(o -> instance, o -> Encoder.empty(), Decoder.unit(instance));
     }
 
+    /**
+     * Creates a new codec for serializing a complex type by applying the given
+     * builder function to a new instance of the record codec builder
+     * applicative.
+     *
+     * @param builder The builder to apply.
+     * @param <O> The complex type.
+     * @return The resulting codec.
+     */
     public static <O> @NotNull Codec<O> create(final @NotNull Function<Instance<O>, ? extends App<Mu<O>, O>> builder) {
         return build(builder.apply(instance())).codec();
     }
 
+    /**
+     * Creates a new map codec for serializing a complex type by applying the
+     * given builder function to a new instance of the record codec builder
+     * applicative.
+     *
+     * @param builder The builder to apply.
+     * @param <O> The complex type.
+     * @return The resulting map codec.
+     */
     public static <O> @NotNull MapCodec<O> createMap(final @NotNull Function<Instance<O>, ? extends App<Mu<O>, O>> builder) {
         return build(builder.apply(instance()));
     }
@@ -77,6 +144,10 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
         };
     }
 
+    private static <O, F> @NotNull RecordCodecBuilder<O, F> unbox(final @NotNull App<Mu<O>, F> box) {
+        return (RecordCodecBuilder<O, F>) box;
+    }
+
     private final Function<O, F> getter;
     private final Function<O, MapEncoder<F>> encoder;
     private final MapDecoder<F> decoder;
@@ -88,17 +159,34 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
         this.decoder = decoder;
     }
 
-    public static final class Mu<O> implements K1 {}
+    /**
+     * A mu for the record codec builder applicative.
+     *
+     * @param <O> The target complex type for the record codec builder.
+     */
+    public static final class Mu<O> implements K1 {
 
+        private Mu() {
+        }
+    }
+
+    /**
+     * An instance for the record codec builder applicative.
+     *
+     * @param <O> The input type for the record codec builder.
+     */
     public static final class Instance<O> implements Applicative<Mu<O>, Instance.Mu<O>> {
 
+        private Instance() {
+        }
+
         @Override
-        public @NotNull <A> App<RecordCodecBuilder.Mu<O>, A> point(final @NotNull A a) {
+        public <A> @NotNull App<RecordCodecBuilder.Mu<O>, A> point(final @NotNull A a) {
             return RecordCodecBuilder.point(a);
         }
 
         @Override
-        public @NotNull <A, R> Function<App<RecordCodecBuilder.Mu<O>, A>, App<RecordCodecBuilder.Mu<O>, R>> lift1(
+        public <A, R> @NotNull Function<App<RecordCodecBuilder.Mu<O>, A>, App<RecordCodecBuilder.Mu<O>, R>> lift1(
                 final @NotNull App<RecordCodecBuilder.Mu<O>, Function<A, R>> function) {
             return fa -> {
                 final var f = unbox(function);
@@ -139,6 +227,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
             };
         }
 
+        @SuppressWarnings("Convert2Diamond")
         @Override
         public @NotNull <A, B, R> App<RecordCodecBuilder.Mu<O>, R> ap2(final @NotNull App<RecordCodecBuilder.Mu<O>, BiFunction<A, B, R>> function,
                                                                        final @NotNull App<RecordCodecBuilder.Mu<O>, A> a,
@@ -155,7 +244,6 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
                         final var bEncoder = fb.encoder.apply(o);
                         final var bFromO = fb.getter.apply(o);
                         // If we make it a diamond here, it fails to compile for some reason.
-                        //noinspection Convert2Diamond
                         return new MapEncoder<R>() {
                             @Override
                             public @NotNull <T> RecordBuilder<T> encode(final R input, final @NotNull DataOps<T> ops,
@@ -186,6 +274,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
             );
         }
 
+        @SuppressWarnings("Convert2Diamond")
         @Override
         public @NotNull <A, B, C, R> App<RecordCodecBuilder.Mu<O>, R> ap3(
                 final @NotNull App<RecordCodecBuilder.Mu<O>, Function3<A, B, C, R>> function, final @NotNull App<RecordCodecBuilder.Mu<O>, A> a,
@@ -205,7 +294,6 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
                         final var cEncoder = fc.encoder.apply(o);
                         final var cFromO = fc.getter.apply(o);
                         // If we make it a diamond here, it fails to compile for some reason.
-                        //noinspection Convert2Diamond
                         return new MapEncoder<R>() {
                             @Override
                             public @NotNull <T> RecordBuilder<T> encode(final R input, final @NotNull DataOps<T> ops,
@@ -241,6 +329,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
             );
         }
 
+        @SuppressWarnings("Convert2Diamond")
         @Override
         public @NotNull <A, B, C, D, R> App<RecordCodecBuilder.Mu<O>, R> ap4(
                 final @NotNull App<RecordCodecBuilder.Mu<O>, Function4<A, B, C, D, R>> function, final @NotNull App<RecordCodecBuilder.Mu<O>, A> a,
@@ -264,7 +353,6 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
                         final var dEncoder = fd.encoder.apply(o);
                         final var dFromO = fd.getter.apply(o);
                         // If we make it a diamond here, it fails to compile for some reason.
-                        //noinspection Convert2Diamond
                         return new MapEncoder<R>() {
                             @Override
                             public @NotNull <T> RecordBuilder<T> encode(final R input, final @NotNull DataOps<T> ops,
@@ -302,12 +390,12 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
             );
         }
 
+        @SuppressWarnings("Convert2Diamond")
         @Override
         public @NotNull <T, R> App<RecordCodecBuilder.Mu<O>, R> map(final @NotNull Function<? super T, ? extends R> function,
                                                                     final @NotNull App<RecordCodecBuilder.Mu<O>, T> argument) {
             final var unbox = unbox(argument);
             final var getter = unbox.getter;
-            //noinspection Convert2Diamond
             return new RecordCodecBuilder<>(
                     getter.andThen(function),
                     // If we make it a diamond here, it fails to compile for some reason.
@@ -330,6 +418,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
             );
         }
 
-        private static final class Mu<O> implements Applicative.Mu {}
+        private static final class Mu<O> implements Applicative.Mu {
+        }
     }
 }

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suppressions PUBLIC "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN" "http://checkstyle.org/dtds/suppressions_1_2.dtd">
+<suppressions>
+    <!-- I don't really have the capacity to explain how this stuff works. It's internal anyway, so docs don't really matter that much. -->
+    <suppress files=".*org[\\/]kryptonmc[\\/]util[\\/]function(al)?[\\/].*" checks=".*Javadoc.*" />
+
+    <!-- All of these methods are self-explanatory except for a few, which are documented. -->
+    <suppress files=".*org[\\/]kryptonmc[\\/]serialization[\\/]DataOps.*" checks=".*Javadoc.*" />
+</suppressions>

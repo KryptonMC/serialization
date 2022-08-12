@@ -6,13 +6,11 @@
  * This project is licensed under the terms of the MIT license.
  * For more details, please reference the LICENSE file in the top-level directory.
  */
-package org.kryptonmc.serialization.codecs;
+package org.kryptonmc.serialization;
 
 import org.jetbrains.annotations.NotNull;
-import org.kryptonmc.serialization.Codec;
-import org.kryptonmc.serialization.DataOps;
 
-public interface PrimitiveCodec<A> extends Codec<A> {
+interface PrimitiveCodec<A> extends Codec<A> {
 
     <T> @NotNull A read(final @NotNull T input, final @NotNull DataOps<T> ops);
 

@@ -14,8 +14,23 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.kryptonmc.util.Pair;
 
+/**
+ * A type that represents a map-like structure for a generic data type.
+ *
+ * @param <T> The data type.
+ */
 public interface MapLike<T> {
 
+    /**
+     * Creates a wrapper object that delegates to the given map, using the
+     * given ops for any conversions required between data types and standard
+     * types.
+     *
+     * @param map The backing map.
+     * @param ops The data operations.
+     * @param <T> The data type.
+     * @return A wrapper around the backing map.
+     */
     static <T> @NotNull MapLike<T> forMap(final @NotNull Map<T, T> map, final @NotNull DataOps<T> ops) {
         return new MapLike<>() {
             @Override
@@ -40,9 +55,28 @@ public interface MapLike<T> {
         };
     }
 
-    @Nullable T get(@NotNull T key);
+    /**
+     * Gets the value for the given key, or returns null if there is no value
+     * for the given key.
+     *
+     * @param key The key.
+     * @return The value, or null if not present.
+     */
+    @Nullable T get(final @NotNull T key);
 
-    @Nullable T get(@NotNull String key);
+    /**
+     * Gets the value for the given key, or returns null if there is no value
+     * for the given key.
+     *
+     * @param key The key.
+     * @return The value, or null if not present.
+     */
+    @Nullable T get(final @NotNull String key);
 
+    /**
+     * Gets the entries that are held by this map-like structure.
+     *
+     * @return The entries.
+     */
     @NotNull Stream<Pair<T, T>> entries();
 }

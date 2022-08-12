@@ -15,6 +15,15 @@ import org.kryptonmc.serialization.MapLike;
 import org.kryptonmc.serialization.RecordBuilder;
 import org.kryptonmc.util.Pair;
 
+/**
+ * This is a map codec variant of {@link PairCodec}.
+ *
+ * @param first The first map codec.
+ * @param second The second map codec.
+ * @param <F> The first type.
+ * @param <S> The second type.
+ * @see PairCodec
+ */
 public record PairMapCodec<F, S>(@NotNull MapCodec<F> first, @NotNull MapCodec<S> second) implements MapCodec<Pair<F, S>> {
 
     @Override

@@ -10,7 +10,7 @@ package org.kryptonmc.serialization.nbt;
 
 import java.util.Iterator;
 
-/**
+/*
  * An iterator that transforms a backing iterator.
  *
  * This is a port of Guava's transformed iterator, to avoid a dependency on Guava.

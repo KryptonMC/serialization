@@ -41,6 +41,9 @@ import org.kryptonmc.serialization.MapLike;
 import org.kryptonmc.serialization.RecordBuilder;
 import org.kryptonmc.util.Pair;
 
+/**
+ * The standard data operations for the Krypton NBT library.
+ */
 public final class NbtOps implements DataOps<Tag> {
 
     public static @NotNull NbtOps INSTANCE = new NbtOps();
@@ -277,7 +280,7 @@ public final class NbtOps implements DataOps<Tag> {
     }
 
     @Override
-    public @NotNull Tag createLongList(@NotNull LongStream input) {
+    public @NotNull Tag createLongList(final @NotNull LongStream input) {
         return new LongArrayTag(input.toArray());
     }
 
@@ -285,8 +288,8 @@ public final class NbtOps implements DataOps<Tag> {
     public @NotNull Tag createMap(final @NotNull Stream<Pair<Tag, Tag>> map) {
         final var result = CompoundTag.immutableBuilder();
         map.forEach(entry -> result.put(
-                Objects.requireNonNull(entry.first(), "Key in entry " + entry + " in map " + map + " from createMap is null!").asString(),
-                Objects.requireNonNull(entry.second(), "Value in entry " + entry + " in map " + map + " from createMap is null!")
+                Objects.requireNonNull(entry.first(), "Key in entry " + entry + " from createMap is null!").asString(),
+                Objects.requireNonNull(entry.second(), "Value in entry " + entry + " from createMap is null!")
         ));
         return result.build();
     }

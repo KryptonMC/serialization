@@ -2,14 +2,16 @@ plugins {
     `kotlin-dsl`
 }
 
-repositories {
-    gradlePluginPortal()
+dependencies {
+    implementation(libs.plugin.errorprone)
+    implementation(libs.plugin.indra)
 }
 
 dependencies {
-    implementation("gradle.plugin.org.cadixdev.gradle", "licenser", "0.6.1")
+    compileOnly(files(libs::class.java.protectionDomain.codeSource.location))
 }
 
-tasks.compileJava {
-    options.release.set(8)
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }

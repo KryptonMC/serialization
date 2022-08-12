@@ -13,11 +13,6 @@ import org.jetbrains.annotations.NotNull;
 
 public interface Traversable<T extends K1, Mu extends Traversable.Mu> extends Functor<T, Mu> {
 
-    static <F extends K1, Mu extends Traversable.Mu> @NotNull Traversable<F, Mu> unbox(final @NotNull App<Mu, F> proofBox) {
-        // noinspection unchecked
-        return (Traversable<F, Mu>) proofBox;
-    }
-
     <F extends K1, A, B> @NotNull App<F, App<T, B>> traverse(
             final @NotNull Applicative<F, ?> applicative, final @NotNull Function<A, App<F, B>> function, final @NotNull App<T, A> input);
 

@@ -14,6 +14,15 @@ import org.kryptonmc.serialization.Decoder;
 import org.kryptonmc.serialization.MapDecoder;
 import org.kryptonmc.serialization.MapLike;
 
+/**
+ * A map decoder that will attempt to decode a field with the given name from
+ * an input map, decoding the value mapped to the name (key) in the map with
+ * the element decoder.
+ *
+ * @param name The field name.
+ * @param elementDecoder The field value decoder.
+ * @param <A> The output type.
+ */
 public record FieldDecoder<A>(@NotNull String name, @NotNull Decoder<A> elementDecoder) implements MapDecoder<A> {
 
     @Override

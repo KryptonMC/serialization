@@ -16,6 +16,14 @@ import org.kryptonmc.serialization.MapCodec;
 import org.kryptonmc.serialization.MapLike;
 import org.kryptonmc.serialization.RecordBuilder;
 
+/**
+ * A simple map codec implementation that processes a map of values.
+ *
+ * @param keyCodec The key codec.
+ * @param valueCodec The value codec.
+ * @param <K> The key type.
+ * @param <V> The value type.
+ */
 public record SimpleMapCodec<K, V>(@NotNull Codec<K> keyCodec, @NotNull Codec<V> valueCodec) implements BaseMapCodec<K, V>, MapCodec<Map<K, V>> {
 
     @Override
