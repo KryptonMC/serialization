@@ -13,17 +13,22 @@
  */
 package org.kryptonmc.serialization;
 
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.kryptonmc.serialization.codecs.EitherMapCodec;
+import org.kryptonmc.serialization.codecs.PairMapCodec;
 import org.kryptonmc.serialization.codecs.RecordCodecBuilder;
+import org.kryptonmc.serialization.codecs.SimpleMapCodec;
 import org.kryptonmc.util.Either;
+import org.kryptonmc.util.Pair;
 
 /**
- * A specialisation of {@link Codec} that uses {@link MapLike} values as input
+ * A specialization of {@link Codec} that uses {@link MapLike} values as input
  * and {@link RecordBuilder}s as output.
  *
  * @param <A> The value type.
@@ -100,6 +105,50 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
      */
     static <A> @NotNull MapCodec<A> unit(final @NotNull Supplier<A> defaultValue) {
         return of(Encoder.empty(), Decoder.unit(defaultValue));
+    }
+
+    /**
+     * Creates a new map codec that encodes/decodes a pair of values using the
+     * given first and second map codec.
+     *
+     * @param first The first codec.
+     * @param second The second codec.
+     * @param <F> The first type.
+     * @param <S> The second type.
+     * @return A new pair map codec.
+     * @see PairMapCodec
+     */
+    static <F, S> @NotNull MapCodec<Pair<F, S>> pair(final @NotNull MapCodec<F> first, final @NotNull MapCodec<S> second) {
+        return new PairMapCodec<>(first, second);
+    }
+
+    /**
+     * Creates a new map codec that attempts to encode/decode the left value,
+     * else falls back to the right value.
+     *
+     * @param left The left codec.
+     * @param right The right codec.
+     * @param <L> The left type.
+     * @param <R> The right type.
+     * @return A new either map codec.
+     * @see EitherMapCodec
+     */
+    static <L, R> @NotNull MapCodec<Either<L, R>> either(final @NotNull MapCodec<L> left, final @NotNull MapCodec<R> right) {
+        return new EitherMapCodec<>(left, right);
+    }
+
+    /**
+     * Creates a new map codec that encodes/decodes a map of values using the
+     * key codec to process the keys and the value codec to process the values.
+     *
+     * @param keyCodec The key codec.
+     * @param valueCodec The value codec.
+     * @param <K> The key type.
+     * @param <V> The value type.
+     * @return A new map codec.
+     */
+    static <K, V> @NotNull MapCodec<Map<K, V>> map(final @NotNull Codec<K> keyCodec, final @NotNull Codec<V> valueCodec) {
+        return new SimpleMapCodec<>(keyCodec, valueCodec);
     }
 
     /**
