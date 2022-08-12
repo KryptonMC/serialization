@@ -1,6 +1,7 @@
 import net.ltgt.gradle.errorprone.errorprone
 
 plugins {
+    id("org.cadixdev.licenser")
     id("net.kyori.indra")
     id("net.kyori.indra.checkstyle")
     id("net.kyori.indra.publishing")
@@ -36,6 +37,22 @@ indra {
             }
         }
     }
+}
+
+license {
+    exclude(setOf(
+        "**/serialization/*.java",
+        "**/serialization/codecs/*.java",
+        "**/util/function/Function*.java",
+        "**/util/functional/*.java",
+        "**/util/Either.java",
+        "**/util/Pair.java",
+        "**/util/Unit.java",
+        "**/serialization/gson/*.java",
+        "**/serialization/nbt/Iterators.java",
+        "**/serialization/nbt/PeekingIterator.java",
+        "**/serialization/nbt/TransformedIterator.java",
+    ))
 }
 
 tasks {

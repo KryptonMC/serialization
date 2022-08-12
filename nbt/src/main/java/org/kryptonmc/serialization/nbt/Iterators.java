@@ -1,10 +1,17 @@
 /*
- * This file is part of Krypton Serialization, licensed under the MIT license.
+ * This file is part of Krypton Serialization, and originates from Google
+ * Guava, originally licensed under the Apache License 2.0, re-licensed here
+ * under the MIT license.
  *
+ * Copyright (C) 2007 The Guava Authors
  * Copyright (C) 2022 KryptonMC and contributors
  *
  * This project is licensed under the terms of the MIT license.
  * For more details, please reference the LICENSE file in the top-level directory.
+ *
+ * For the original files that this file is derived from, see here:
+ * https://github.com/google/guava/blob/5c8719e28880a0f942272bdd57d9a194a2d6226c/guava/src/com/google/common/collect/Iterators.java
+ * https://github.com/google/guava/blob/5c8719e28880a0f942272bdd57d9a194a2d6226c/guava/src/com/google/common/collect/Lists.java
  */
 package org.kryptonmc.serialization.nbt;
 

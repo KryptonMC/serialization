@@ -5,6 +5,13 @@
  *
  * This project is licensed under the terms of the MIT license.
  * For more details, please reference the LICENSE file in the top-level directory.
+ *
+ * For the original files that this file is derived from, see here:
+ * https://github.com/google/guava/blob/5c8719e28880a0f942272bdd57d9a194a2d6226c/guava/src/com/google/common/collect/TransformedIterator.java
+ *
+ * Changes made (required by Apache License 2.0):
+ * * Removed original documentation
+ * * Removed nullable object supertypes on the generic types.
  */
 package org.kryptonmc.serialization.nbt;
 

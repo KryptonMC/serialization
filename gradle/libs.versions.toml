@@ -15,6 +15,7 @@ checkstyle = "9.3"
 # Plugin versions
 errorpronePlugin = "2.0.2"
 indra = "2.1.1"
+licenser = "0.6.1"
 
 [libraries]
 # Module dependencies
@@ -30,3 +31,4 @@ stylecheck = { group = "ca.stellardrift", name = "stylecheck", version.ref = "st
 # Plugins
 plugin-errorprone = { group = "net.ltgt.gradle", name = "gradle-errorprone-plugin", version.ref = "errorpronePlugin" }
 plugin-indra = { group = "net.kyori", name = "indra-common", version.ref = "indra" }
+plugin-licenser = { group = "gradle.plugin.org.cadixdev.gradle", name = "licenser", version.ref = "licenser" }

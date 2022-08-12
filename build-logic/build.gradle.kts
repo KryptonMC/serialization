@@ -5,6 +5,7 @@ plugins {
 dependencies {
     implementation(libs.plugin.errorprone)
     implementation(libs.plugin.indra)
+    implementation(libs.plugin.licenser)
 }
 
 dependencies {
