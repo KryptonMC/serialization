@@ -17,6 +17,9 @@ import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 import org.kryptonmc.serialization.Codec;
 import org.kryptonmc.serialization.DataOps;
+import org.kryptonmc.serialization.DataResult;
+import org.kryptonmc.serialization.Lifecycle;
+import org.kryptonmc.util.Pair;
 
 /**
  * A simple codec that processes a map of values.
@@ -29,12 +32,12 @@ import org.kryptonmc.serialization.DataOps;
 public record UnboundedMapCodec<K, V>(@NotNull Codec<K> keyCodec, @NotNull Codec<V> valueCodec) implements BaseMapCodec<K, V>, Codec<Map<K, V>> {
 
     @Override
-    public @NotNull <T> Map<K, V> decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
-        return decode(ops.getMap(input), ops);
+    public <T> @NotNull DataResult<Pair<Map<K, V>, T>> decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
+        return ops.getMap(input).withLifecycle(Lifecycle.stable()).flatMap(map -> decode(map, ops)).map(result -> Pair.of(result, input));
     }
 
     @Override
-    public <T> @NotNull T encode(final @NotNull Map<K, V> input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
+    public <T> @NotNull DataResult<T> encode(final @NotNull Map<K, V> input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
         return encode(input, ops, ops.mapBuilder()).build(prefix);
     }
 

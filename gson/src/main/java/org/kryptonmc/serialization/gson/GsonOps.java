@@ -18,9 +18,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -28,6 +28,7 @@ import java.util.stream.StreamSupport;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.kryptonmc.serialization.DataOps;
+import org.kryptonmc.serialization.DataResult;
 import org.kryptonmc.serialization.ListBuilder;
 import org.kryptonmc.serialization.MapLike;
 import org.kryptonmc.serialization.RecordBuilder;
@@ -49,93 +50,88 @@ public final class GsonOps implements DataOps<JsonElement> {
     }
 
     @Override
-    public boolean getBooleanValue(final @NotNull JsonElement input) {
-        if (input.isJsonPrimitive()) {
-            if (input.getAsJsonPrimitive().isBoolean()) return input.getAsBoolean();
-            if (input.getAsJsonPrimitive().isNumber()) return input.getAsNumber().byteValue() != 0;
+    public @NotNull DataResult<Boolean> getBooleanValue(final @NotNull JsonElement input) {
+        if (input instanceof final JsonPrimitive primitive) {
+            if (primitive.isBoolean()) return DataResult.success(input.getAsBoolean());
+            if (primitive.isNumber()) return DataResult.success(input.getAsNumber().byteValue() != 0);
         }
-        throw new IllegalArgumentException("Provided input for getBooleanValue is not a boolean! Input: " + input);
+        return error("getBooleanValue", "boolean", input);
     }
 
     @Override
-    public @NotNull Number getNumberValue(final @NotNull JsonElement input) {
-        if (input.isJsonPrimitive()) {
-            if (input.getAsJsonPrimitive().isNumber()) return input.getAsNumber();
-            if (input.getAsJsonPrimitive().isBoolean()) return input.getAsBoolean() ? 1 : 0;
+    public @NotNull DataResult<Number> getNumberValue(final @NotNull JsonElement input) {
+        if (input instanceof final JsonPrimitive primitive) {
+            if (primitive.isNumber()) return DataResult.success(input.getAsNumber());
+            if (primitive.isBoolean()) return DataResult.success(input.getAsBoolean() ? 1 : 0);
         }
-        if (input.isJsonPrimitive() && input.getAsJsonPrimitive().isBoolean()) return input.getAsJsonPrimitive().getAsBoolean() ? 1 : 0;
-        throw new IllegalArgumentException("Provided input for getNumberValue is not a number! Input: " + input);
+        return error("getNumberValue", "number", input);
     }
 
     @Override
-    public @NotNull String getStringValue(final @NotNull JsonElement input) {
-        if (input.isJsonPrimitive() && input.getAsJsonPrimitive().isString()) return input.getAsString();
-        throw new IllegalArgumentException("Provided input for getStringValue is not a string! Input: " + input);
+    public @NotNull DataResult<String> getStringValue(final @NotNull JsonElement input) {
+        if (input instanceof final JsonPrimitive primitive && primitive.isString()) return DataResult.success(input.getAsString());
+        return error("getStringValue", "string", input);
     }
 
     @Override
-    public @NotNull Stream<JsonElement> getStream(final @NotNull JsonElement input) {
-        if (input.isJsonArray()) {
-            return StreamSupport.stream(input.getAsJsonArray().spliterator(), false).map(GsonOps::orNull);
-        }
-        throw new IllegalArgumentException("Provided input for getStream is not a json array! Input: " + input);
+    public @NotNull DataResult<Stream<JsonElement>> getStream(final @NotNull JsonElement input) {
+        if (input instanceof final JsonArray array) return DataResult.success(StreamSupport.stream(array.spliterator(), false).map(GsonOps::orNull));
+        return error("getStream", "json array", input);
     }
 
     @Override
-    public @NotNull Consumer<Consumer<JsonElement>> getList(final @NotNull JsonElement input) {
-        if (input.isJsonArray()) {
-            return consumer -> {
-                for (final var element : input.getAsJsonArray()) {
+    public @NotNull DataResult<Consumer<Consumer<JsonElement>>> getList(final @NotNull JsonElement input) {
+        if (input instanceof final JsonArray array) {
+            return DataResult.success(consumer -> {
+                for (final var element : array) {
                     consumer.accept(orNull(element));
                 }
-            };
+            });
         }
-        throw new IllegalArgumentException("Provided input for getList is not a json array! Input: " + input);
+        return error("getList", "json array", input);
     }
 
     @Override
-    public @NotNull JsonElement mergeToList(final @NotNull JsonElement list, final @NotNull JsonElement value) {
-        if (!list.isJsonArray() && list != empty()) error("Cannot merge value " + value + " in to non-list " + list + "!");
-        final JsonArray result = new JsonArray();
+    public @NotNull DataResult<JsonElement> mergeToList(final @NotNull JsonElement list, final @NotNull JsonElement value) {
+        if (!list.isJsonArray() && list != empty()) return DataResult.error("Cannot merge value " + value + " in to non-list " + list + "!");
+        final var result = new JsonArray();
         if (list != empty()) result.addAll(list.getAsJsonArray());
         result.add(value);
-        return result;
+        return DataResult.success(result);
     }
 
     @Override
-    public @NotNull JsonElement mergeToList(final @NotNull JsonElement list, final @NotNull List<JsonElement> values) {
-        if (!list.isJsonArray() && list != empty()) error("Cannot merge values " + values + " in to non-list " + list + "!");
-        final JsonArray result = new JsonArray();
+    public @NotNull DataResult<JsonElement> mergeToList(final @NotNull JsonElement list, final @NotNull List<JsonElement> values) {
+        if (!list.isJsonArray() && list != empty()) return DataResult.error("Cannot merge values " + values + " in to non-list " + list + "!");
+        final var result = new JsonArray();
         if (list != empty()) result.addAll(list.getAsJsonArray());
         values.forEach(result::add);
-        return result;
+        return DataResult.success(result);
     }
 
     @Override
-    public @NotNull Stream<Pair<JsonElement, JsonElement>> getMapValues(final @NotNull JsonElement input) {
-        if (!input.isJsonObject()) error("Provided input for getMapValues is not a json object! Input: " + input);
-        return input.getAsJsonObject().entrySet().stream()
-                .map(entry -> Pair.of(new JsonPrimitive(entry.getKey()), orNull(entry.getValue())));
+    public @NotNull DataResult<Stream<Pair<JsonElement, JsonElement>>> getMapValues(final @NotNull JsonElement input) {
+        if (!(input instanceof final JsonObject object)) return error("getMapValues", "json object", input);
+        return DataResult.success(object.entrySet().stream().map(entry -> Pair.of(new JsonPrimitive(entry.getKey()), orNull(entry.getValue()))));
     }
 
     @Override
-    public @NotNull Consumer<BiConsumer<JsonElement, JsonElement>> getMapEntries(final @NotNull JsonElement input) {
-        if (!input.isJsonObject()) error("Provided input for getMapEntries is not a json object! Input: " + input);
-        return consumer -> {
-            for (final var entry : input.getAsJsonObject().entrySet()) {
+    public @NotNull DataResult<Consumer<BiConsumer<JsonElement, JsonElement>>> getMapEntries(final @NotNull JsonElement input) {
+        if (!(input instanceof final JsonObject object)) return error("getMapEntries", "json object", input);
+        return DataResult.success(consumer -> {
+            for (final var entry : object.entrySet()) {
                 consumer.accept(createString(entry.getKey()), orNull(entry.getValue()));
             }
-        };
+        });
     }
 
     @Override
-    public @NotNull MapLike<JsonElement> getMap(final @NotNull JsonElement input) {
-        if (!input.isJsonObject()) error("Provided input for getMap is not a json object! Input: " + input);
-        final JsonObject object = input.getAsJsonObject();
-        return new MapLike<>() {
+    public @NotNull DataResult<MapLike<JsonElement>> getMap(final @NotNull JsonElement input) {
+        if (!(input instanceof final JsonObject object)) return error("getMap", "json object", input);
+        return DataResult.success(new MapLike<>() {
             @Override
             public @Nullable JsonElement get(final @NotNull JsonElement key) {
-                return get(key.getAsString());
+                return orNull(object.get(key.getAsString()));
             }
 
             @Override
@@ -152,23 +148,37 @@ public final class GsonOps implements DataOps<JsonElement> {
             public String toString() {
                 return "MapLike[" + object + "]";
             }
-        };
+        });
     }
 
     @Override
-    public @NotNull JsonElement mergeToMap(final @NotNull JsonElement map, final @NotNull JsonElement key, final @NotNull JsonElement value) {
-        if (!map.isJsonObject() && map != empty()) error("Cannot merge key " + key + " and value " + value + " in to non-map " + map + "!");
-        if (!key.isJsonPrimitive() || !key.getAsJsonPrimitive().isString()) error("Key " + key + " is not a string!");
-        final JsonObject result = new JsonObject();
+    public @NotNull JsonElement remove(final @NotNull JsonElement input, final @NotNull String key) {
+        if (input instanceof final JsonObject object) {
+            final var result = new JsonObject();
+            object.entrySet().stream().filter(entry -> !Objects.equals(entry.getKey(), key))
+                    .forEach(entry -> result.add(entry.getKey(), entry.getValue()));
+            return result;
+        }
+        return input;
+    }
+
+    @Override
+    public @NotNull DataResult<JsonElement> mergeToMap(final @NotNull JsonElement map, final @NotNull JsonElement key,
+                                                       final @NotNull JsonElement value) {
+        if (!map.isJsonObject() && map != empty()) {
+            return DataResult.error("Cannot merge key " + key + " and value " + value + " in to non-map " + map + "!");
+        }
+        if (!key.isJsonPrimitive() || !key.getAsJsonPrimitive().isString()) return DataResult.error("Key " + key + " is not a string!");
+        final var result = new JsonObject();
         if (map != empty()) map.getAsJsonObject().entrySet().forEach(entry -> result.add(entry.getKey(), entry.getValue()));
         result.add(key.getAsString(), value);
-        return result;
+        return DataResult.success(result);
     }
 
     @Override
-    public @NotNull JsonElement mergeToMap(final @NotNull JsonElement map, final @NotNull MapLike<JsonElement> values) {
-        if (!map.isJsonObject() && map != empty()) error("Cannot merge values " + values + " in to non-map " + map + "!");
-        final JsonObject result = new JsonObject();
+    public @NotNull DataResult<JsonElement> mergeToMap(final @NotNull JsonElement map, final @NotNull MapLike<JsonElement> values) {
+        if (!map.isJsonObject() && map != empty()) return DataResult.error("Cannot merge values " + values + " in to non-map " + map + "!");
+        final var result = new JsonObject();
         if (map != empty()) map.getAsJsonObject().entrySet().forEach(entry -> result.add(entry.getKey(), entry.getValue()));
         final var missed = new ArrayList<JsonElement>();
         values.entries().forEach(entry -> {
@@ -179,8 +189,10 @@ public final class GsonOps implements DataOps<JsonElement> {
             }
             result.add(key.getAsString(), entry.second());
         });
-        if (!missed.isEmpty()) error("Cannot merge values " + values + " in to map " + map + " as keys " + missed + " are not strings!");
-        return result;
+        if (!missed.isEmpty()) {
+            return DataResult.error("Cannot merge values " + values + " in to map " + map + " as keys " + missed + " are not strings!");
+        }
+        return DataResult.success(result);
     }
 
     @Override
@@ -200,7 +212,7 @@ public final class GsonOps implements DataOps<JsonElement> {
 
     @Override
     public @NotNull JsonElement createList(final @NotNull Stream<JsonElement> input) {
-        final JsonArray result = new JsonArray();
+        final var result = new JsonArray();
         input.forEach(result::add);
         return result;
     }
@@ -212,7 +224,7 @@ public final class GsonOps implements DataOps<JsonElement> {
 
     @Override
     public @NotNull JsonElement createMap(final @NotNull Stream<Pair<JsonElement, JsonElement>> map) {
-        final JsonObject result = new JsonObject();
+        final var result = new JsonObject();
         map.forEach(entry -> result.add(entry.first().getAsString(), entry.second()));
         return result;
     }
@@ -230,15 +242,15 @@ public final class GsonOps implements DataOps<JsonElement> {
         final JsonPrimitive primitive = input.getAsJsonPrimitive();
         if (primitive.isString()) return outOps.createString(primitive.getAsString());
         if (primitive.isBoolean()) return outOps.createBoolean(primitive.getAsBoolean());
-        final BigDecimal value = primitive.getAsBigDecimal();
+        final var value = primitive.getAsBigDecimal();
         try {
-            final long longValue = value.longValueExact();
+            final var longValue = value.longValueExact();
             if ((byte) longValue == longValue) return outOps.createByte((byte) longValue);
             if ((short) longValue == longValue) return outOps.createShort((short) longValue);
             if ((int) longValue == longValue) return outOps.createInt((int) longValue);
             return outOps.createLong(longValue);
         } catch (final ArithmeticException exception) {
-            final double doubleValue = value.doubleValue();
+            final var doubleValue = value.doubleValue();
             if ((float) doubleValue == doubleValue) return outOps.createFloat((float) doubleValue);
             return outOps.createDouble(doubleValue);
         }
@@ -249,11 +261,11 @@ public final class GsonOps implements DataOps<JsonElement> {
         return "JSON";
     }
 
-    private static void error(final @NotNull String message) {
-        throw new IllegalArgumentException(message);
-    }
-
     private static @Nullable JsonElement orNull(final @NotNull JsonElement element) {
         return element.isJsonNull() ? null : element;
+    }
+
+    private static <R> @NotNull DataResult<R> error(final @NotNull String methodName, final @NotNull String name, final @NotNull JsonElement input) {
+        return DataResult.error("Provided input " + input + " for " + methodName + " is not a " + name + "!");
     }
 }

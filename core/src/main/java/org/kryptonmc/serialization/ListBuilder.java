@@ -13,8 +13,10 @@
  */
 package org.kryptonmc.serialization;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.UnaryOperator;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
@@ -35,6 +37,15 @@ public non-sealed interface ListBuilder<T> extends CompoundTypeBuilder<T> {
      */
     @Contract(value = "_ -> this", mutates = "this")
     @NotNull ListBuilder<T> add(final @NotNull T value);
+
+    /**
+     * Adds the given value to this builder.
+     *
+     * @param value The value to add.
+     * @return This builder.
+     */
+    @Contract(value = "_ -> this", mutates = "this")
+    @NotNull ListBuilder<T> add(final @NotNull DataResult<T> value);
 
     /**
      * Adds the given value to this builder, encoding it with the given encoder.
@@ -65,6 +76,36 @@ public non-sealed interface ListBuilder<T> extends CompoundTypeBuilder<T> {
     }
 
     /**
+     * Adds all the errors, if any, from the given result to the result being
+     * built by this builder.
+     *
+     * @param result The result to add errors from.
+     * @return This builder.
+     */
+    @Contract(value = "_ -> this", mutates = "this")
+    @NotNull ListBuilder<T> withErrorsFrom(final @NotNull DataResult<?> result);
+
+    /**
+     * Maps the error message of this builder, if any, with the given on error
+     * mapper.
+     *
+     * @param onError The on error mapper.
+     * @return This builder.
+     */
+    @Contract(value = "_ -> this", mutates = "this")
+    @NotNull ListBuilder<T> mapError(final @NotNull UnaryOperator<String> onError);
+
+    /**
+     * Builds the complex type.
+     *
+     * @param prefix The prefix to prepend to the result.
+     * @return The built result.
+     */
+    default @NotNull DataResult<T> build(final @NotNull DataResult<T> prefix) {
+        return prefix.flatMap(this::build);
+    }
+
+    /**
      * The default implementation of {@link ListBuilder} that adds the values
      * to an intermediary {@link ArrayList} as its builder type and merges the
      * intermediary list with the prefix using {@link DataOps#mergeToList(Object, List)}}.
@@ -74,7 +115,7 @@ public non-sealed interface ListBuilder<T> extends CompoundTypeBuilder<T> {
     final class Default<T> implements ListBuilder<T> {
 
         private final DataOps<T> ops;
-        private final List<T> result = new ArrayList<>();
+        private DataResult<ImmutableList.Builder<T>> builder = DataResult.success(ImmutableList.builder(), Lifecycle.stable());
 
         /**
          * Creates a new default builder with the given ops.
@@ -92,14 +133,33 @@ public non-sealed interface ListBuilder<T> extends CompoundTypeBuilder<T> {
 
         @Override
         public @NotNull ListBuilder<T> add(final @NotNull T value) {
-            result.add(value);
+            builder = builder.map(b -> b.add(value));
             return this;
         }
 
-        @SuppressWarnings("NullableProblems")
         @Override
-        public @NotNull T build(final @NotNull T prefix) {
-            return ops.mergeToList(prefix, result);
+        public @NotNull ListBuilder<T> add(final @NotNull DataResult<T> value) {
+            builder = builder.apply2stable(ImmutableList.Builder::add, value);
+            return this;
+        }
+
+        @Override
+        public @NotNull ListBuilder<T> withErrorsFrom(final @NotNull DataResult<?> result) {
+            builder = builder.flatMap(r -> result.map(v -> r));
+            return this;
+        }
+
+        @Override
+        public @NotNull ListBuilder<T> mapError(final @NotNull UnaryOperator<String> onError) {
+            builder = builder.mapError(onError);
+            return this;
+        }
+
+        @Override
+        public @NotNull DataResult<T> build(final T prefix) {
+            final var result = builder.flatMap(b -> ops.mergeToList(prefix, b.build()));
+            builder = DataResult.success(ImmutableList.builder(), Lifecycle.stable());
+            return result;
         }
     }
 }

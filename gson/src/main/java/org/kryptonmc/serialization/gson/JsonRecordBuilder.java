@@ -18,6 +18,7 @@ import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.kryptonmc.serialization.DataResult;
 import org.kryptonmc.serialization.RecordBuilder;
 
 final class JsonRecordBuilder extends RecordBuilder.AbstractStringBuilder<JsonElement, JsonObject> {
@@ -32,23 +33,24 @@ final class JsonRecordBuilder extends RecordBuilder.AbstractStringBuilder<JsonEl
     }
 
     @Override
-    protected void append(final @NotNull JsonObject builder, final @NotNull String key, final @NotNull JsonElement value) {
+    protected @NotNull JsonObject append(final @NotNull JsonObject builder, final @NotNull String key, final @NotNull JsonElement value) {
         builder.add(key, value);
+        return builder;
     }
 
     @Override
-    protected @NotNull JsonElement build(final @NotNull JsonObject builder, final @Nullable JsonElement prefix) {
-        if (prefix == null || prefix instanceof JsonNull) return builder;
-        if (!prefix.isJsonObject()) {
-            throw new IllegalArgumentException("Cannot merge map " + builder + " with a non-map " + prefix + " (attempting to build record builder)");
+    protected @NotNull DataResult<JsonElement> build(final @NotNull JsonObject builder, final @Nullable JsonElement prefix) {
+        if (prefix == null || prefix instanceof JsonNull) return DataResult.success(builder);
+        if (!(prefix instanceof final JsonObject object)) {
+            return DataResult.error("Cannot merge map " + builder + " with a non-map " + prefix + " (attempting to build record builder)");
         }
-        final JsonObject result = new JsonObject();
-        for (final var entry : prefix.getAsJsonObject().entrySet()) {
+        final var result = new JsonObject();
+        for (final var entry : object.entrySet()) {
             result.add(entry.getKey(), entry.getValue());
         }
         for (final var entry : builder.entrySet()) {
             result.add(entry.getKey(), entry.getValue());
         }
-        return result;
+        return DataResult.success(result);
     }
 }

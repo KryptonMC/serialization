@@ -26,7 +26,7 @@ import org.kryptonmc.nbt.Tag;
 final class NbtUtil {
 
     // This is consistent with vanilla's NbtOps.
-    public static CollectionTag<?> createGenericList(final @NotNull Tag input, final int targetElementType) {
+    public static @NotNull CollectionTag<?> createGenericList(final @NotNull Tag input, final int targetElementType) {
         final int inputElementType = input instanceof final CollectionTag<?> tag ? tag.getElementType() : EndTag.ID;
         if (typesMatch(inputElementType, targetElementType, ByteTag.ID)) return new ByteArrayTag(new byte[0]);
         if (typesMatch(inputElementType, targetElementType, IntTag.ID)) return new IntArrayTag(new int[0]);

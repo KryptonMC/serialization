@@ -16,6 +16,7 @@ package org.kryptonmc.serialization.codecs;
 import org.jetbrains.annotations.NotNull;
 import org.kryptonmc.serialization.Codec;
 import org.kryptonmc.serialization.DataOps;
+import org.kryptonmc.serialization.DataResult;
 import org.kryptonmc.util.Pair;
 
 /**
@@ -29,13 +30,14 @@ import org.kryptonmc.util.Pair;
 public record PairCodec<F, S>(@NotNull Codec<F> first, @NotNull Codec<S> second) implements Codec<Pair<F, S>> {
 
     @Override
-    public @NotNull <T> Pair<F, S> decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
-        return Pair.of(first.decode(input, ops), second.decode(input, ops));
+    public <T> @NotNull DataResult<Pair<Pair<F, S>, T>> decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
+        return first.decode(input, ops)
+                .flatMap(p1 -> second.decode(p1.second(), ops).map(p2 -> Pair.of(Pair.of(p1.first(), p2.first()), p2.second())));
     }
 
     @Override
-    public <T> @NotNull T encode(final @NotNull Pair<F, S> input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
-        return first.encode(input.first(), ops, second.encode(input.second(), ops, prefix));
+    public <T> @NotNull DataResult<T> encode(final @NotNull Pair<F, S> input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
+        return second.encode(input.second(), ops, prefix).flatMap(f -> first.encode(input.first(), ops, f));
     }
 
     @Override

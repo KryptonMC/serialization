@@ -13,11 +13,13 @@
  */
 package org.kryptonmc.serialization;
 
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.kryptonmc.serialization.codecs.FieldDecoder;
+import org.kryptonmc.util.Pair;
 
 /**
  * A decoder that can transform some input data in to a standard type.
@@ -36,7 +38,20 @@ public interface Decoder<A> {
      * @return A new unit decoder.
      */
     static <A> @NotNull MapDecoder<A> unit(final @NotNull A instance) {
-        return unit(() -> instance);
+        return new MapDecoder<>() {
+
+            private final DataResult<A> result = DataResult.success(instance);
+
+            @Override
+            public <T> @NotNull DataResult<A> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+                return result;
+            }
+
+            @Override
+            public String toString() {
+                return "UnitDecoder[" + instance + "]";
+            }
+        };
     }
 
     /**
@@ -50,8 +65,8 @@ public interface Decoder<A> {
     static <A> @NotNull MapDecoder<A> unit(final @NotNull Supplier<A> instance) {
         return new MapDecoder<>() {
             @Override
-            public <T> A decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
-                return instance.get();
+            public <T> @NotNull DataResult<A> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+                return DataResult.success(instance.get());
             }
 
             @Override
@@ -62,16 +77,60 @@ public interface Decoder<A> {
     }
 
     /**
+     * Creates a new decoder that always returns a result with the given error
+     * message.
+     *
+     * @param error The error message.
+     * @param <A> The value type.
+     * @return A new error decoder.
+     */
+    static <A> @NotNull Decoder<A> error(final @NotNull String error) {
+        return new Decoder<>() {
+            @Override
+            public <T> @NotNull DataResult<Pair<A, T>> decode(final T input, final @NotNull DataOps<T> ops) {
+                return DataResult.error(error);
+            }
+
+            @Override
+            public String toString() {
+                return "ErrorDecoder[" + error + ']';
+            }
+        };
+    }
+
+    /**
      * Decodes the given input data to the standard type that this decoder is
      * for, using the given operations to convert the input in to standard
      * types that can be used generically when decoding.
      *
+     * <p>This method returns a pair of values as its result. The first is the
+     * decoded result, and the second is any partial result that may be
+     * present.</p>
+     *
      * @param input The input.
      * @param ops The data operations.
      * @param <T> The data type.
-     * @return The decoded value.
+     * @return The decoded result.
      */
-    <T> A decode(final T input, final @NotNull DataOps<T> ops);
+    <T> @NotNull DataResult<Pair<A, T>> decode(final T input, final @NotNull DataOps<T> ops);
+
+    /**
+     * Decodes the given input data to the standard type that this decoder is
+     * for, using the given operations to convert the input in to standard
+     * types that can be used generically when decoding.
+     *
+     * <p>This method takes the result from {@link #decode(Object, DataOps)}
+     * and disregards any possible partial result that may be returned.</p>
+     *
+     * @param input The input.
+     * @param ops The data operations.
+     * @param <T> The data type.
+     * @return The decoded result.
+     */
+    @ApiStatus.NonExtendable
+    default <T> @NotNull DataResult<A> read(final T input, final @NotNull DataOps<T> ops) {
+        return decode(input, ops).map(Pair::first);
+    }
 
     /**
      * Creates a new decoder that decodes a field with the given name using
@@ -81,7 +140,7 @@ public interface Decoder<A> {
      * @return A new field decoder.
      */
     @ApiStatus.NonExtendable
-    default @NotNull MapDecoder<A> field(final @NotNull String name) {
+    default @NotNull MapDecoder<A> fieldOf(final @NotNull String name) {
         return new FieldDecoder<>(name, this);
     }
 
@@ -89,22 +148,93 @@ public interface Decoder<A> {
      * Maps this decoder to a new decoder, using the given function to map
      * results from this decoder to a new type for the new decoder.
      *
-     * @param function The function to apply when mapping the decoded value
-     *                 from this decoder.
+     * @param mapper The function to apply when mapping the decoded value from
+     *               this decoder.
      * @param <B> The new value type.
      * @return The resulting mapped decoder.
      */
     @ApiStatus.NonExtendable
-    default <B> @NotNull Decoder<B> map(final @NotNull Function<? super A, ? extends B> function) {
+    default <B> @NotNull Decoder<B> map(final @NotNull Function<? super A, ? extends B> mapper) {
         return new Decoder<>() {
             @Override
-            public <T> B decode(final T input, final @NotNull DataOps<T> ops) {
-                return function.apply(Decoder.this.decode(input, ops));
+            public <T> @NotNull DataResult<Pair<B, T>> decode(final T input, final @NotNull DataOps<T> ops) {
+                return Decoder.this.decode(input, ops).map(result -> result.mapFirst(mapper));
             }
 
             @Override
             public String toString() {
                 return Decoder.this + "[mapped]";
+            }
+        };
+    }
+
+    /**
+     * Maps this decoder to a new decoder, using the given function to map
+     * results from this decoder to a new type for the new decoder.
+     *
+     * <p>This method is different to {@link #map(Function)} in that the
+     * function returns a {@link DataResult}.</p>
+     *
+     * @param mapper The function to apply when mapping the decoded value from
+     *               this decoder.
+     * @param <B> The new value type.
+     * @return The resulting mapped decoder.
+     */
+    @ApiStatus.NonExtendable
+    default <B> @NotNull Decoder<B> flatMap(final @NotNull Function<? super A, ? extends DataResult<? extends B>> mapper) {
+        return new Decoder<>() {
+            @Override
+            public <T> @NotNull DataResult<Pair<B, T>> decode(final T input, final @NotNull DataOps<T> ops) {
+                return Decoder.this.decode(input, ops).flatMap(result -> mapper.apply(result.first()).map(r -> Pair.of(r, result.second())));
+            }
+
+            @Override
+            public String toString() {
+                return Decoder.this + "[flatMapped]";
+            }
+        };
+    }
+
+    /**
+     * Promotes the partial result of the decoded result, if any, calling the
+     * given onError function if an error is present in the partial result.
+     *
+     * @param onError The on error function.
+     * @return The resulting decoder.
+     */
+    @ApiStatus.NonExtendable
+    default @NotNull Decoder<A> promotePartial(final @NotNull Consumer<String> onError) {
+        return new Decoder<>() {
+            @Override
+            public <T> @NotNull DataResult<Pair<A, T>> decode(final T input, final @NotNull DataOps<T> ops) {
+                return Decoder.this.decode(input, ops).promotePartial(onError);
+            }
+
+            @Override
+            public String toString() {
+                return Decoder.this + "[promotePartial]";
+            }
+        };
+    }
+
+    /**
+     * Creates a new decoder that sets the lifecycle of the decoded result to
+     * the given lifecycle.
+     *
+     * @param lifecycle The lifecycle.
+     * @return A new decoder.
+     */
+    @ApiStatus.NonExtendable
+    default @NotNull Decoder<A> withLifecycle(final @NotNull Lifecycle lifecycle) {
+        return new Decoder<>() {
+            @Override
+            public <T> @NotNull DataResult<Pair<A, T>> decode(final T input, final @NotNull DataOps<T> ops) {
+                return Decoder.this.decode(input, ops).withLifecycle(lifecycle);
+            }
+
+            @Override
+            public String toString() {
+                return Decoder.this.toString();
             }
         };
     }

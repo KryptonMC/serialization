@@ -17,9 +17,9 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.kryptonmc.serialization.codecs.EitherMapCodec;
 import org.kryptonmc.serialization.codecs.PairMapCodec;
 import org.kryptonmc.serialization.codecs.RecordCodecBuilder;
@@ -63,7 +63,7 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
                                        final @NotNull Supplier<String> name) {
         return new MapCodec<>() {
             @Override
-            public <T> A decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+            public <T> @NotNull DataResult<A> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
                 return decoder.decode(input, ops);
             }
 
@@ -165,6 +165,38 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
         return RecordCodecBuilder.of(getter, this);
     }
 
+    @SuppressWarnings("MissingJavadocMethod")
+    @ApiStatus.NonExtendable
+    default @NotNull MapCodec<A> stable() {
+        return withLifecycle(Lifecycle.stable());
+    }
+
+    @SuppressWarnings("MissingJavadocMethod")
+    @ApiStatus.NonExtendable
+    default @NotNull MapCodec<A> deprecated(final int since) {
+        return withLifecycle(Lifecycle.deprecated(since));
+    }
+
+    @Override
+    default @NotNull MapCodec<A> withLifecycle(final @NotNull Lifecycle lifecycle) {
+        return new MapCodec<>() {
+            @Override
+            public <T> @NotNull DataResult<A> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+                return MapCodec.this.decode(input, ops).withLifecycle(lifecycle);
+            }
+
+            @Override
+            public <T> @NotNull RecordBuilder<T> encode(final A input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> prefix) {
+                return MapCodec.this.encode(input, ops, prefix).lifecycle(lifecycle);
+            }
+
+            @Override
+            public String toString() {
+                return MapCodec.this.toString();
+            }
+        };
+    }
+
     /**
      * Converts this map codec in to its codec equivalent.
      *
@@ -190,6 +222,20 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
     }
 
     /**
+     * The map codec equivalent of {@link Codec#flatXmap(Function, Function)}.
+     *
+     * @param to The mapper to transform the output value.
+     * @param from The mapper to transform the input value.
+     * @param <B> The new codec type.
+     * @return The mapped codec.
+     * @see Codec#flatXmap(Function, Function) The codec equivalent.
+     */
+    default <B> @NotNull MapCodec<B> flatXmap(final @NotNull Function<? super A, ? extends DataResult<? extends B>> to,
+                                              final @NotNull Function<? super B, ? extends DataResult<? extends A>> from) {
+        return of(flatComap(from), flatMap(to), () -> this + "[flatXmapped]");
+    }
+
+    /**
      * The map codec equivalent of {@link Codec#orElse(Object, Consumer)}.
      *
      * @param value The default value to use if the decoder fails.
@@ -198,8 +244,36 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
      * @see Codec#orElse(Object, Consumer) The codec equivalent.
      */
     @ApiStatus.NonExtendable
-    default @NotNull MapCodec<A> orElse(final @NotNull A value, final @NotNull Consumer<Exception> onError) {
-        return CodecUtil.orElseGet(this, () -> value, onError, () -> "OrElse[" + onError + " " + value + "]");
+    default @NotNull MapCodec<A> orElse(final @NotNull A value, final @NotNull Consumer<String> onError) {
+        return orElse(value, CodecUtil.consumerToFunction(onError));
+    }
+
+    /**
+     * The map codec equivalent of {@link Codec#orElse(Object, UnaryOperator)}.
+     *
+     * @param value The default value to use if the decoder fails.
+     * @param onError The handler to call if an error occurs.
+     * @return A new or else codec.
+     * @see Codec#orElse(Object, UnaryOperator) The codec equivalent.
+     */
+    default @NotNull MapCodec<A> orElse(final @NotNull A value, final @NotNull UnaryOperator<String> onError) {
+        return mapResult(new ResultFunction<>() {
+            @Override
+            public <T> @NotNull DataResult<A> apply(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops,
+                                                    final @NotNull DataResult<A> result) {
+                return DataResult.success(result.mapError(onError).result().orElse(value));
+            }
+
+            @Override
+            public <T> @NotNull RecordBuilder<T> coApply(final A input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> result) {
+                return result.mapError(onError);
+            }
+
+            @Override
+            public String toString() {
+                return "OrElse[" + onError + " " + value + "]";
+            }
+        });
     }
 
     /**
@@ -212,8 +286,38 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
      * @see Codec#orElseGet(Supplier, Consumer) The codec equivalent.
      */
     @ApiStatus.NonExtendable
-    default @NotNull MapCodec<A> orElseGet(final @NotNull Supplier<? extends A> value, final @NotNull Consumer<Exception> onError) {
-        return CodecUtil.orElseGet(this, value, onError, () -> "OrElseGet[" + onError + " " + value.get() + "]");
+    default @NotNull MapCodec<A> orElseGet(final @NotNull Supplier<? extends A> value, final @NotNull Consumer<String> onError) {
+        return orElseGet(value, CodecUtil.consumerToFunction(onError));
+    }
+
+    /**
+     * The map codec equivalent of {@link Codec#orElseGet(Supplier, UnaryOperator)}.
+     *
+     * @param value The default value supplier to get the result of if the
+     *              decoder fails.
+     * @param onError The handler to call if an error occurs.
+     * @return A new or else codec.
+     * @see Codec#orElseGet(Supplier, UnaryOperator) The codec equivalent.
+     */
+    @ApiStatus.NonExtendable
+    default @NotNull MapCodec<A> orElseGet(final @NotNull Supplier<? extends A> value, final @NotNull UnaryOperator<String> onError) {
+        return mapResult(new ResultFunction<>() {
+            @Override
+            public <T> @NotNull DataResult<A> apply(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops,
+                                                    final @NotNull DataResult<A> result) {
+                return DataResult.success(result.mapError(onError).result().orElseGet(value));
+            }
+
+            @Override
+            public <T> @NotNull RecordBuilder<T> coApply(final A input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> result) {
+                return result.mapError(onError);
+            }
+
+            @Override
+            public String toString() {
+                return "OrElseGet[" + onError + " " + value.get() + "]";
+            }
+        });
     }
 
     /**
@@ -225,7 +329,23 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
      */
     @ApiStatus.NonExtendable
     default @NotNull MapCodec<A> orElse(final @NotNull A value) {
-        return CodecUtil.orElseGet(this, () -> value, () -> "OrElse[" + value + "]");
+        return mapResult(new ResultFunction<>() {
+            @Override
+            public <T> @NotNull DataResult<A> apply(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops,
+                                                    final @NotNull DataResult<A> result) {
+                return DataResult.success(result.result().orElse(value));
+            }
+
+            @Override
+            public <T> @NotNull RecordBuilder<T> coApply(final A input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> result) {
+                return result;
+            }
+
+            @Override
+            public String toString() {
+                return "OrElse[" + value + "]";
+            }
+        });
     }
 
     /**
@@ -238,7 +358,51 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
      */
     @ApiStatus.NonExtendable
     default @NotNull MapCodec<A> orElseGet(final @NotNull Supplier<? extends A> value) {
-        return CodecUtil.orElseGet(this, value, () -> "OrElseGet[" + value.get() + "]");
+        return mapResult(new ResultFunction<>() {
+            @Override
+            public <T> @NotNull DataResult<A> apply(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops,
+                                                    final @NotNull DataResult<A> result) {
+                return DataResult.success(result.result().orElseGet(value));
+            }
+
+            @Override
+            public <T> @NotNull RecordBuilder<T> coApply(final A input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> result) {
+                return result;
+            }
+
+            @Override
+            public String toString() {
+                return "OrElseGet[" + value.get() + "]";
+            }
+        });
+    }
+
+    /**
+     * Overrides the return value from the decoder, setting the partial result
+     * to the result of applying the given value supplier.
+     *
+     * @param value The partial value supplier.
+     * @return The resulting codec.
+     */
+    @ApiStatus.NonExtendable
+    default @NotNull MapCodec<A> withPartial(final @NotNull Supplier<A> value) {
+        return mapResult(new ResultFunction<>() {
+            @Override
+            public <T> @NotNull DataResult<A> apply(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops,
+                                                    final @NotNull DataResult<A> result) {
+                return result.withPartial(value);
+            }
+
+            @Override
+            public <T> @NotNull RecordBuilder<T> coApply(final A input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> result) {
+                return result;
+            }
+
+            @Override
+            public String toString() {
+                return "WithPartial[" + value.get() + "]";
+            }
+        });
     }
 
     /**
@@ -253,22 +417,14 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
     default @NotNull MapCodec<A> mapResult(final @NotNull ResultFunction<A> function) {
         return new MapCodec<>() {
             @Override
-            public <T> A decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
-                try {
-                    return function.apply(input, ops, Either.left(MapCodec.this.decode(input, ops)));
-                } catch (final Exception exception) {
-                    return function.apply(input, ops, Either.right(exception));
-                }
+            public <T> @NotNull DataResult<A> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+                return function.apply(input, ops, MapCodec.this.decode(input, ops));
             }
 
             @Override
-            public @NotNull <T> RecordBuilder<T> encode(final @NotNull A input, final @NotNull DataOps<T> ops,
+            public <T> @NotNull RecordBuilder<T> encode(final @NotNull A input, final @NotNull DataOps<T> ops,
                                                         final @NotNull RecordBuilder<T> prefix) {
-                try {
-                    return function.coApply(input, ops, MapCodec.this.encode(input, ops, prefix), null);
-                } catch (final Exception exception) {
-                    return function.coApply(input, ops, prefix, exception);
-                }
+                return function.coApply(input, ops, MapCodec.this.encode(input, ops, prefix));
             }
 
             @Override
@@ -295,13 +451,11 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
          *
          * @param input The input from the decoder.
          * @param ops The data operations from the decoder.
-         * @param resultOrError The result that the decoder produced, or the
-         *                      error that occurred when attempting to decode
-         *                      the result with the decoder.
+         * @param result The result that the decoder produced.
          * @param <T> The data type from the decoder.
          * @return The result.
          */
-        <T> A apply(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops, final @NotNull Either<A, Exception> resultOrError);
+        <T> @NotNull DataResult<A> apply(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops, final @NotNull DataResult<A> result);
 
         /**
          * Returns the result that should be returned from the encoder.
@@ -314,14 +468,11 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
          * @param ops The data operations from the encoder.
          * @param result The result that the encoder produced, or the prefix
          *               that was provided if there was an error.
-         * @param exception The exception produced by the encoder, if one was
-         *                  produced.
          * @param <T> The data type from the encoder.
          * @return The result. This is always non-null as it is expected that
          *         the given result will be returned if a different one cannot be.
          */
-        <T> @NotNull RecordBuilder<T> coApply(final A input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> result,
-                                              final @Nullable Exception exception);
+        <T> @NotNull RecordBuilder<T> coApply(final A input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> result);
     }
 
     /**
@@ -337,12 +488,12 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
     record StandardCodec<A>(@NotNull MapCodec<A> codec) implements Codec<A> {
 
         @Override
-        public <T> A decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
-            return codec.decode(input, ops);
+        public <T> @NotNull DataResult<Pair<A, T>> decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
+            return codec.decode(input, ops).map(result -> Pair.of(result, input));
         }
 
         @Override
-        public <T> @NotNull T encode(final @NotNull A input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
+        public <T> @NotNull DataResult<T> encode(final @NotNull A input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
             return codec.encode(input, ops, ops.mapBuilder()).build(prefix);
         }
 

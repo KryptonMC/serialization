@@ -13,16 +13,17 @@
  */
 package org.kryptonmc.serialization.codecs;
 
-import java.util.Objects;
 import java.util.function.Function;
 import org.jetbrains.annotations.NotNull;
 import org.kryptonmc.serialization.Codec;
 import org.kryptonmc.serialization.DataOps;
+import org.kryptonmc.serialization.DataResult;
 import org.kryptonmc.serialization.Decoder;
 import org.kryptonmc.serialization.Encoder;
 import org.kryptonmc.serialization.MapCodec;
 import org.kryptonmc.serialization.MapLike;
 import org.kryptonmc.serialization.RecordBuilder;
+import org.kryptonmc.util.Pair;
 
 /**
  * A codec for a value that uses the value of a key in a map to determine what
@@ -48,18 +49,19 @@ public final class KeyDispatchCodec<K, V> implements MapCodec<V> {
      * @param <V> The value type.
      * @return A new key dispatch codec.
      */
-    public static <K, V> @NotNull KeyDispatchCodec<K, V> unsafe(final @NotNull String typeKey, final @NotNull Codec<K> keyCodec,
-                                                                final @NotNull Function<? super V, ? extends K> type,
-                                                                final @NotNull Function<? super K, ? extends Decoder<? extends V>> decoder,
-                                                                final @NotNull Function<? super V, ? extends Encoder<V>> encoder) {
+    public static <K, V> @NotNull KeyDispatchCodec<K, V> unsafe(
+            final @NotNull String typeKey, final @NotNull Codec<K> keyCodec,
+            final @NotNull Function<? super V, ? extends DataResult<? extends K>> type,
+            final @NotNull Function<? super K, ? extends DataResult<? extends Decoder<? extends V>>> decoder,
+            final @NotNull Function<? super V, ? extends DataResult<? extends Encoder<V>>> encoder) {
         return new KeyDispatchCodec<>(typeKey, keyCodec, type, decoder, encoder, true);
     }
 
     private final String typeKey;
     private final Codec<K> keyCodec;
-    private final Function<? super V, ? extends K> type;
-    private final Function<? super K, ? extends Decoder<? extends V>> decoder;
-    private final Function<? super V, ? extends Encoder<V>> encoder;
+    private final Function<? super V, ? extends DataResult<? extends K>> type;
+    private final Function<? super K, ? extends DataResult<? extends Decoder<? extends V>>> decoder;
+    private final Function<? super V, ? extends DataResult<? extends Encoder<V>>> encoder;
     private final boolean assumeMap;
 
     /**
@@ -72,14 +74,16 @@ public final class KeyDispatchCodec<K, V> implements MapCodec<V> {
      * @param codec The function used to get the codec used to encode/decode
      *              the value from a given key.
      */
-    public KeyDispatchCodec(final @NotNull String typeKey, final @NotNull Codec<K> keyCodec, final @NotNull Function<? super V, ? extends K> type,
-                            final @NotNull Function<? super K, ? extends Codec<? extends V>> codec) {
+    public KeyDispatchCodec(final @NotNull String typeKey, final @NotNull Codec<K> keyCodec,
+                            final @NotNull Function<? super V, ? extends DataResult<? extends K>> type,
+                            final @NotNull Function<? super K, ? extends DataResult<? extends Codec<? extends V>>> codec) {
         this(typeKey, keyCodec, type, codec, value -> getEncoder(type, codec, value), false);
     }
 
-    private KeyDispatchCodec(final @NotNull String typeKey, final @NotNull Codec<K> keyCodec, final @NotNull Function<? super V, ? extends K> type,
-                             final @NotNull Function<? super K, ? extends Decoder<? extends V>> decoder,
-                             final @NotNull Function<? super V, ? extends Encoder<V>> encoder, final boolean assumeMap) {
+    private KeyDispatchCodec(final @NotNull String typeKey, final @NotNull Codec<K> keyCodec,
+                             final @NotNull Function<? super V, ? extends DataResult<? extends K>> type,
+                             final @NotNull Function<? super K, ? extends DataResult<? extends Decoder<? extends V>>> decoder,
+                             final @NotNull Function<? super V, ? extends DataResult<? extends Encoder<V>>> encoder, final boolean assumeMap) {
         this.typeKey = typeKey;
         this.keyCodec = keyCodec;
         this.type = type;
@@ -90,37 +94,49 @@ public final class KeyDispatchCodec<K, V> implements MapCodec<V> {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> V decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+    public <T> @NotNull DataResult<V> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
         final var elementName = input.get(typeKey);
-        if (elementName == null) throw new IllegalArgumentException("Input " + input + " does not contain required type key " + typeKey);
-        final var key = keyCodec.decode(elementName, ops);
-        final var elementDecoder = decoder.apply(key);
-        if (elementDecoder instanceof final MapCodec.StandardCodec<?> standardCodec) return (V) standardCodec.codec().decode(input, ops);
-        if (assumeMap) return elementDecoder.decode(ops.createMap(input.entries()), ops);
-        return elementDecoder.decode(Objects.requireNonNull(input.get(VALUE_KEY)), ops);
+        if (elementName == null) return DataResult.error("Input " + input + " does not contain required type key " + typeKey);
+
+        return keyCodec.decode(elementName, ops).flatMap(type -> {
+            final var elementDecoder = decoder.apply(type.first());
+            return elementDecoder.flatMap(decoder -> {
+                if (decoder instanceof MapCodec.StandardCodec<?>) {
+                    return (DataResult<V>) ((MapCodec.StandardCodec<? extends V>) decoder).codec().decode(input, ops);
+                }
+                if (assumeMap) return decoder.decode(ops.createMap(input.entries()), ops).map(Pair::first);
+                return decoder.decode(input.get(VALUE_KEY), ops).map(Pair::first);
+            });
+        });
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public @NotNull <T> RecordBuilder<T> encode(final @NotNull V input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> prefix) {
+    public <T> @NotNull RecordBuilder<T> encode(final @NotNull V input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> prefix) {
         final var elementEncoder = encoder.apply(input);
-        if (elementEncoder == null) return prefix;
-        if (elementEncoder instanceof MapCodec.StandardCodec<?>) {
-            return ((MapCodec.StandardCodec<V>) elementEncoder).codec().encode(input, ops, prefix)
-                    .add(typeKey, keyCodec.encodeStart(type.apply(input), ops));
+        final var builder = prefix.withErrorsFrom(elementEncoder);
+        if (elementEncoder.result().isEmpty()) return builder;
+
+        final var encoder = elementEncoder.result().get();
+        if (encoder instanceof MapCodec.StandardCodec<?>) {
+            return ((MapCodec.StandardCodec<V>) encoder).codec().encode(input, ops, prefix)
+                    .add(typeKey, type.apply(input).flatMap(t -> keyCodec.encodeStart(t, ops)));
         }
+
         final var typeString = ops.createString(typeKey);
-        final var element = elementEncoder.encodeStart(input, ops);
+        final var result = encoder.encodeStart(input, ops);
         if (assumeMap) {
-            final var map = ops.getMap(element);
-            prefix.add(typeString, keyCodec.encodeStart(type.apply(input), ops));
-            map.entries().forEach(entry -> {
-                if (!entry.first().equals(typeString)) prefix.add(entry.first(), entry.second());
-            });
-            return prefix;
+            final var element = result.flatMap(ops::getMap);
+            return element.map(map -> {
+                prefix.add(typeString, type.apply(input).flatMap(t -> keyCodec.encodeStart(t, ops)));
+                map.entries().forEach(entry -> {
+                    if (!entry.first().equals(typeString)) prefix.add(entry.first(), entry.second());
+                });
+                return prefix;
+            }).result().orElseGet(() -> prefix.withErrorsFrom(element));
         }
-        prefix.add(typeString, keyCodec.encodeStart(type.apply(input), ops));
-        prefix.add(VALUE_KEY, element);
+        prefix.add(typeString, type.apply(input).flatMap(t -> keyCodec.encodeStart(t, ops)));
+        prefix.add(VALUE_KEY, result);
         return prefix;
     }
 
@@ -130,8 +146,10 @@ public final class KeyDispatchCodec<K, V> implements MapCodec<V> {
     }
 
     @SuppressWarnings("unchecked")
-    private static <K, V> Encoder<V> getEncoder(final @NotNull Function<? super V, ? extends K> type,
-                                                final @NotNull Function<? super K, ? extends Encoder<? extends V>> encoder, final @NotNull V input) {
-        return (Encoder<V>) encoder.apply(type.apply(input));
+    private static <K, V> @NotNull DataResult<? extends Encoder<V>> getEncoder(
+            final @NotNull Function<? super V, ? extends DataResult<? extends K>> type,
+            final @NotNull Function<? super K, ? extends DataResult<? extends Encoder<? extends V>>> encoder,
+            final @NotNull V input) {
+        return type.apply(input).flatMap(k -> (DataResult<Encoder<V>>) encoder.apply(k));
     }
 }

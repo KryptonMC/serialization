@@ -16,7 +16,9 @@ package org.kryptonmc.serialization.codecs;
 import org.jetbrains.annotations.NotNull;
 import org.kryptonmc.serialization.Codec;
 import org.kryptonmc.serialization.DataOps;
+import org.kryptonmc.serialization.DataResult;
 import org.kryptonmc.util.Either;
+import org.kryptonmc.util.Pair;
 
 /**
  * A codec that will encode/decode the value with the left codec if it can, or
@@ -40,16 +42,14 @@ import org.kryptonmc.util.Either;
 public record EitherCodec<L, R>(@NotNull Codec<L> left, @NotNull Codec<R> right) implements Codec<Either<L, R>> {
 
     @Override
-    public <T> @NotNull Either<L, R> decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
-        try {
-            return Either.left(left.decode(input, ops));
-        } catch (final Exception ignored) {
-            return Either.right(right.decode(input, ops));
-        }
+    public <T> @NotNull DataResult<Pair<Either<L, R>, T>> decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
+        final DataResult<Pair<Either<L, R>, T>> leftRead = left.decode(input, ops).map(vo -> vo.mapFirst(Either::left));
+        if (leftRead.result().isPresent()) return leftRead;
+        return right.decode(input, ops).map(vo -> vo.mapFirst(Either::right));
     }
 
     @Override
-    public <T> @NotNull T encode(final @NotNull Either<L, R> input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
+    public <T> @NotNull DataResult<T> encode(final @NotNull Either<L, R> input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
         return input.map(value -> left.encode(value, ops, prefix), value -> right.encode(value, ops, prefix));
     }
 

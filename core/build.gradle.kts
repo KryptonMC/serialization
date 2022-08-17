@@ -3,5 +3,6 @@ plugins {
 }
 
 dependencies {
+    api(libs.guava)
     compileOnlyApi(libs.annotations)
 }

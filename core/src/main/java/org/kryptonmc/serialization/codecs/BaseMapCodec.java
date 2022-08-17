@@ -13,15 +13,18 @@
  */
 package org.kryptonmc.serialization.codecs;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 import org.kryptonmc.serialization.Codec;
 import org.kryptonmc.serialization.DataOps;
+import org.kryptonmc.serialization.DataResult;
+import org.kryptonmc.serialization.Lifecycle;
 import org.kryptonmc.serialization.MapLike;
 import org.kryptonmc.serialization.RecordBuilder;
 import org.kryptonmc.util.Pair;
+import org.kryptonmc.util.Unit;
 
 /**
  * The base map codec implementation that contains the common logic for the
@@ -54,18 +57,26 @@ public sealed interface BaseMapCodec<K, V> permits SimpleMapCodec, UnboundedMapC
      * @param <T> The data type.
      * @return The decoded map.
      */
-    default <T> @NotNull Map<K, V> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
-        final var read = new HashMap<K, V>();
-        final var failed = new ArrayList<Pair<T, T>>();
-        input.entries().forEach(entry -> {
-            try {
-                read.put(keyCodec().decode(entry.first(), ops), valueCodec().decode(entry.second(), ops));
-            } catch (final Exception ignored) {
-                failed.add(entry);
-            }
-        });
-        if (!failed.isEmpty()) throw new IllegalArgumentException("Failed to decode map! Failed input: " + failed);
-        return Map.copyOf(read);
+    default <T> @NotNull DataResult<Map<K, V>> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+        final ImmutableMap.Builder<K, V> read = ImmutableMap.builder();
+        final ImmutableList.Builder<Pair<T, T>> failed = ImmutableList.builder();
+
+        final DataResult<Unit> result = input.entries().reduce(DataResult.success(Unit.INSTANCE, Lifecycle.stable()), (r, pair) -> {
+            final var k = keyCodec().read(pair.first(), ops);
+            final var v = valueCodec().read(pair.second(), ops);
+
+            final var entry = k.apply2stable(Pair::of, v);
+            entry.error().ifPresent(e -> failed.add(pair));
+
+            return r.apply2stable((u, p) -> {
+                read.put(p.first(), p.second());
+                return u;
+            }, entry);
+        }, (r1, r2) -> r1.apply2stable((u1, u2) -> u1, r2));
+
+        final Map<K, V> elements = read.build();
+        final var errors = ops.createMap(failed.build().stream());
+        return result.map(unit -> elements).withPartial(elements).mapError(error -> error + " missed input: " + errors);
     }
 
     /**

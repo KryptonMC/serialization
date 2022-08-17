@@ -10,17 +10,14 @@ package org.kryptonmc.serialization;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.kryptonmc.util.Either;
 
-// Some private stuff that I would rather not expose with @ApiStatus.Internal
 final class CodecUtil {
 
     public static MapEncoder<?> EMPTY = new MapEncoder<>() {
         @Override
-        public @NotNull <T> RecordBuilder<T> encode(final Object input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> prefix) {
+        public <T> @NotNull RecordBuilder<T> encode(final Object input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> prefix) {
             return prefix;
         }
 
@@ -30,94 +27,19 @@ final class CodecUtil {
         }
     };
 
-    public static <A> @NotNull Codec<A> orElseGet(final @NotNull Codec<A> codec, final @NotNull Supplier<A> value,
-                                                  final @NotNull Consumer<Exception> onError, final @NotNull Supplier<String> name) {
-        return codec.mapResult(new Codec.ResultFunction<>() {
-            @Override
-            public <T> A apply(final T input, final @NotNull DataOps<T> ops, final @NotNull Either<A, Exception> resultOrError) {
-                return resultOrError.map(Function.identity(), error -> {
-                    onError.accept(error);
-                    return value.get();
-                });
-            }
-
-            @Override
-            public <T> T coApply(final A input, final @NotNull DataOps<T> ops, final T result, final @Nullable Exception exception) {
-                if (exception != null) onError.accept(exception);
-                return result;
-            }
-
-            @Override
-            public String toString() {
-                return name.get();
-            }
-        });
+    public static <T> @NotNull UnaryOperator<T> consumerToFunction(final @NotNull Consumer<T> consumer) {
+        return value -> {
+            consumer.accept(value);
+            return value;
+        };
     }
 
-    public static <A> @NotNull Codec<A> orElseGet(final @NotNull Codec<A> codec, final @NotNull Supplier<A> value,
-                                                  final @NotNull Supplier<String> name) {
-        return codec.mapResult(new Codec.ResultFunction<>() {
-            @Override
-            public <T> A apply(final T input, final @NotNull DataOps<T> ops, final @NotNull Either<A, Exception> resultOrError) {
-                return resultOrError.map(Function.identity(), error -> value.get());
-            }
-
-            @Override
-            public <T> T coApply(final A input, final @NotNull DataOps<T> ops, final T result, final @Nullable Exception exception) {
-                return result;
-            }
-
-            @Override
-            public String toString() {
-                return name.get();
-            }
-        });
-    }
-
-    public static <A> @NotNull MapCodec<A> orElseGet(final @NotNull MapCodec<A> codec, final @NotNull Supplier<? extends A> value,
-                                                     final @NotNull Consumer<Exception> onError, final @NotNull Supplier<String> name) {
-        return codec.mapResult(new MapCodec.ResultFunction<>() {
-            @Override
-            public <T> A apply(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops, final @NotNull Either<A, Exception> resultOrError) {
-                return resultOrError.map(Function.identity(), error -> {
-                    onError.accept(error);
-                    return value.get();
-                });
-            }
-
-            @Override
-            public @NotNull <T> RecordBuilder<T> coApply(final A input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> result,
-                                                         final @Nullable Exception exception) {
-                if (exception != null) onError.accept(exception);
-                return result;
-            }
-
-            @Override
-            public String toString() {
-                return name.get();
-            }
-        });
-    }
-
-    public static <A> @NotNull MapCodec<A> orElseGet(final @NotNull MapCodec<A> codec, final @NotNull Supplier<? extends A> value,
-                                                     final @NotNull Supplier<String> name) {
-        return codec.mapResult(new MapCodec.ResultFunction<A>() {
-            @Override
-            public <T> A apply(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops, final @NotNull Either<A, Exception> resultOrError) {
-                return resultOrError.map(Function.identity(), error -> value.get());
-            }
-
-            @Override
-            public @NotNull <T> RecordBuilder<T> coApply(final A input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> result,
-                                                         final @Nullable Exception exception) {
-                return result;
-            }
-
-            @Override
-            public String toString() {
-                return name.get();
-            }
-        });
+    public static <N extends Number & Comparable<N>> @NotNull Function<N, DataResult<N>> checkRange(final @NotNull N minInclusive,
+                                                                                                    final @NotNull N maxInclusive) {
+        return value -> {
+            if (value.compareTo(minInclusive) >= 0 && value.compareTo(maxInclusive) <= 0) return DataResult.success(value);
+            return DataResult.error("Value " + value + " outside of range [" + minInclusive + ":" + maxInclusive + "]", value);
+        };
     }
 
     private CodecUtil() {

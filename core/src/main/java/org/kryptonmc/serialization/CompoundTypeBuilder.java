@@ -42,5 +42,5 @@ public sealed interface CompoundTypeBuilder<T> permits ListBuilder, RecordBuilde
      *           it does not matter where the prefix is placed, as long as it
      *           is in the result.
      */
-    @NotNull T build(final @Nullable T prefix);
+    @NotNull DataResult<T> build(final @Nullable T prefix);
 }

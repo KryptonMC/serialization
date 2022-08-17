@@ -212,11 +212,11 @@ public interface Products {
     record P6<FN extends K1, A, B, C, D, E, F>(@NotNull App<FN, A> a, @NotNull App<FN, B> b, @NotNull App<FN, C> c, @NotNull App<FN, D> d,
                                                @NotNull App<FN, E> e, @NotNull App<FN, F> f) {
 
-        public <G> P7<FN, A, B, C, D, E, F, G> and(final @NotNull App<FN, G> g) {
+        public <G> @NotNull P7<FN, A, B, C, D, E, F, G> and(final @NotNull App<FN, G> g) {
             return new P7<>(a, b, c, d, e, f, g);
         }
 
-        public <G, H> P8<FN, A, B, C, D, E, F, G, H> and(final @NotNull App<FN, G> g, final @NotNull App<FN, H> h) {
+        public <G, H> @NotNull P8<FN, A, B, C, D, E, F, G, H> and(final @NotNull App<FN, G> g, final @NotNull App<FN, H> h) {
             return new P8<>(a, b, c, d, e, f, g, h);
         }
 

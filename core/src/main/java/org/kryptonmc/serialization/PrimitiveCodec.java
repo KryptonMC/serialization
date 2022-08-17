@@ -14,20 +14,21 @@
 package org.kryptonmc.serialization;
 
 import org.jetbrains.annotations.NotNull;
+import org.kryptonmc.util.Pair;
 
 interface PrimitiveCodec<A> extends Codec<A> {
 
-    <T> @NotNull A read(final @NotNull T input, final @NotNull DataOps<T> ops);
+    <T> @NotNull DataResult<A> read(final @NotNull T input, final @NotNull DataOps<T> ops);
 
     <T> @NotNull T write(final @NotNull A value, final @NotNull DataOps<T> ops);
 
     @Override
-    default <T> @NotNull A decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
-        return read(input, ops);
+    default <T> @NotNull DataResult<Pair<A, T>> decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
+        return read(input, ops).map(result -> Pair.of(result, ops.empty()));
     }
 
     @Override
-    default <T> @NotNull T encode(final @NotNull A input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
+    default <T> @NotNull DataResult<T> encode(final @NotNull A input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
         return ops.mergeToPrimitive(prefix, write(input, ops));
     }
 }

@@ -13,11 +13,17 @@
  */
 package org.kryptonmc.serialization.codecs;
 
-import java.util.ArrayList;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 import org.jetbrains.annotations.NotNull;
 import org.kryptonmc.serialization.Codec;
 import org.kryptonmc.serialization.DataOps;
+import org.kryptonmc.serialization.DataResult;
+import org.kryptonmc.serialization.Lifecycle;
+import org.kryptonmc.util.Pair;
+import org.kryptonmc.util.Unit;
 
 /**
  * A codec that will encode a list of values by encoding each value with the
@@ -30,23 +36,30 @@ import org.kryptonmc.serialization.DataOps;
 public record ListCodec<A>(@NotNull Codec<A> elementCodec) implements Codec<List<A>> {
 
     @Override
-    public <T> @NotNull List<A> decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
-        final var stream = ops.getList(input);
-        final var result = new ArrayList<A>();
-        final var failed = new ArrayList<T>();
-        stream.accept(value -> {
-            try {
-                result.add(elementCodec.decode(value, ops));
-            } catch (final Exception ignored) {
-                failed.add(value);
-            }
+    public <T> @NotNull DataResult<Pair<List<A>, T>> decode(final @NotNull T input, final @NotNull DataOps<T> ops) {
+        return ops.getList(input).withLifecycle(Lifecycle.stable()).flatMap(stream -> {
+            final ImmutableList.Builder<A> read = ImmutableList.builder();
+            final Stream.Builder<T> failed = Stream.builder();
+            final AtomicReference<DataResult<Unit>> result = new AtomicReference<>(DataResult.success(Unit.INSTANCE, Lifecycle.stable()));
+
+            stream.accept(t -> {
+                final var element = elementCodec.decode(t, ops);
+                element.error().ifPresent(e -> failed.add(t));
+                result.setPlain(result.getPlain().apply2stable((r, v) -> {
+                    read.add(v.first());
+                    return r;
+                }, element));
+            });
+
+            final var elements = read.build();
+            final var errors = ops.createList(failed.build());
+            final Pair<List<A>, T> pair = Pair.of(elements, errors);
+            return result.getPlain().map(unit -> pair).withPartial(pair);
         });
-        if (!failed.isEmpty()) throw new IllegalArgumentException("Failed to decode list! Failed input: " + failed);
-        return List.copyOf(result);
     }
 
     @Override
-    public <T> @NotNull T encode(final @NotNull List<A> input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
+    public <T> @NotNull DataResult<T> encode(final @NotNull List<A> input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
         final var builder = ops.listBuilder();
         for (final var value : input) {
             builder.add(elementCodec.encodeStart(value, ops));

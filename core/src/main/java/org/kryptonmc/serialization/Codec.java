@@ -21,11 +21,12 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.kryptonmc.serialization.codecs.EitherCodec;
 import org.kryptonmc.serialization.codecs.KeyDispatchCodec;
 import org.kryptonmc.serialization.codecs.ListCodec;
@@ -53,7 +54,7 @@ import org.kryptonmc.util.Unit;
  * transform an existing codec to a new one by applying the given functions to
  * the input and output of the encoder/decoder of the input codec (the one the
  * method is called on). Also, codecs can be transformed in to field codecs
- * that will decode fields with specified names with the {@link #field(String)}
+ * that will decode fields with specified names with the {@link #fieldOf(String)}
  * method.</p>
  *
  * @param <A> The value type.
@@ -63,7 +64,7 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
     @NotNull MapCodec<Unit> EMPTY = MapCodec.of(Encoder.empty(), Decoder.unit(Unit.INSTANCE));
     @NotNull Codec<Boolean> BOOLEAN = new PrimitiveCodec<>() {
         @Override
-        public @NotNull <T> Boolean read(final @NotNull T input, final @NotNull DataOps<T> ops) {
+        public <T> @NotNull DataResult<Boolean> read(final @NotNull T input, final @NotNull DataOps<T> ops) {
             return ops.getBooleanValue(input);
         }
 
@@ -79,8 +80,8 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
     };
     @NotNull Codec<Byte> BYTE = new PrimitiveCodec<>() {
         @Override
-        public @NotNull <T> Byte read(final @NotNull T input, final @NotNull DataOps<T> ops) {
-            return ops.getNumberValue(input).byteValue();
+        public <T> @NotNull DataResult<Byte> read(final @NotNull T input, final @NotNull DataOps<T> ops) {
+            return ops.getNumberValue(input).map(Number::byteValue);
         }
 
         @Override
@@ -95,8 +96,8 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
     };
     @NotNull Codec<Short> SHORT = new PrimitiveCodec<>() {
         @Override
-        public @NotNull <T> Short read(final @NotNull T input, final @NotNull DataOps<T> ops) {
-            return ops.getNumberValue(input).shortValue();
+        public <T> @NotNull DataResult<Short> read(final @NotNull T input, final @NotNull DataOps<T> ops) {
+            return ops.getNumberValue(input).map(Number::shortValue);
         }
 
         @Override
@@ -111,8 +112,8 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
     };
     @NotNull Codec<Integer> INT = new PrimitiveCodec<>() {
         @Override
-        public @NotNull <T> Integer read(final @NotNull T input, final @NotNull DataOps<T> ops) {
-            return ops.getNumberValue(input).intValue();
+        public <T> @NotNull DataResult<Integer> read(final @NotNull T input, final @NotNull DataOps<T> ops) {
+            return ops.getNumberValue(input).map(Number::intValue);
         }
 
         @Override
@@ -127,8 +128,8 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
     };
     @NotNull Codec<Long> LONG = new PrimitiveCodec<>() {
         @Override
-        public @NotNull <T> Long read(final @NotNull T input, final @NotNull DataOps<T> ops) {
-            return ops.getNumberValue(input).longValue();
+        public <T> @NotNull DataResult<Long> read(final @NotNull T input, final @NotNull DataOps<T> ops) {
+            return ops.getNumberValue(input).map(Number::longValue);
         }
 
         @Override
@@ -143,8 +144,8 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
     };
     @NotNull Codec<Float> FLOAT = new PrimitiveCodec<>() {
         @Override
-        public @NotNull <T> Float read(final @NotNull T input, final @NotNull DataOps<T> ops) {
-            return ops.getNumberValue(input).floatValue();
+        public <T> @NotNull DataResult<Float> read(final @NotNull T input, final @NotNull DataOps<T> ops) {
+            return ops.getNumberValue(input).map(Number::floatValue);
         }
 
         @Override
@@ -159,8 +160,8 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
     };
     @NotNull Codec<Double> DOUBLE = new PrimitiveCodec<>() {
         @Override
-        public @NotNull <T> Double read(final @NotNull T input, final @NotNull DataOps<T> ops) {
-            return ops.getNumberValue(input).doubleValue();
+        public <T> @NotNull DataResult<Double> read(final @NotNull T input, final @NotNull DataOps<T> ops) {
+            return ops.getNumberValue(input).map(Number::doubleValue);
         }
 
         @Override
@@ -175,7 +176,7 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
     };
     @NotNull Codec<String> STRING = new PrimitiveCodec<>() {
         @Override
-        public @NotNull <T> String read(final @NotNull T input, final @NotNull DataOps<T> ops) {
+        public <T> @NotNull DataResult<String> read(final @NotNull T input, final @NotNull DataOps<T> ops) {
             return ops.getStringValue(input);
         }
 
@@ -191,7 +192,7 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
     };
     @NotNull Codec<ByteBuffer> BYTE_BUFFER = new PrimitiveCodec<>() {
         @Override
-        public @NotNull <T> ByteBuffer read(final @NotNull T input, final @NotNull DataOps<T> ops) {
+        public <T> @NotNull DataResult<ByteBuffer> read(final @NotNull T input, final @NotNull DataOps<T> ops) {
             return ops.getByteBuffer(input);
         }
 
@@ -207,7 +208,7 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
     };
     @NotNull Codec<IntStream> INT_STREAM = new PrimitiveCodec<>() {
         @Override
-        public @NotNull <T> IntStream read(final @NotNull T input, final @NotNull DataOps<T> ops) {
+        public <T> @NotNull DataResult<IntStream> read(final @NotNull T input, final @NotNull DataOps<T> ops) {
             return ops.getIntStream(input);
         }
 
@@ -223,7 +224,7 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
     };
     @NotNull Codec<LongStream> LONG_STREAM = new PrimitiveCodec<>() {
         @Override
-        public @NotNull <T> LongStream read(final @NotNull T input, final @NotNull DataOps<T> ops) {
+        public <T> @NotNull DataResult<LongStream> read(final @NotNull T input, final @NotNull DataOps<T> ops) {
             return ops.getLongStream(input);
         }
 
@@ -235,6 +236,28 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
         @Override
         public String toString() {
             return "LongStream";
+        }
+    };
+    @NotNull Codec<Dynamic<?>> PASSTHROUGH = new Codec<>() {
+        @Override
+        public <T> @NotNull DataResult<Pair<Dynamic<?>, T>> decode(final T input, final @NotNull DataOps<T> ops) {
+            return DataResult.success(Pair.of(new Dynamic<>(ops, input), ops.empty()));
+        }
+
+        @Override
+        public <T> @NotNull DataResult<T> encode(final Dynamic<?> input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
+            if (input.value() == input.ops().empty()) return DataResult.success(prefix, Lifecycle.experimental());
+            final T converted = input.convert(ops).value();
+            if (prefix == ops.empty()) return DataResult.success(converted, Lifecycle.experimental());
+            return ops.getMap(converted).flatMap(map -> ops.mergeToMap(prefix, map)).result().map(DataResult::success).orElseGet(() ->
+                    ops.getStream(converted)
+                            .flatMap(stream -> ops.mergeToList(prefix, stream.collect(Collectors.toList()))).result().map(DataResult::success)
+                            .orElseGet(() -> DataResult.error("Cannot merge prefix " + prefix + " and value " + converted + "!", prefix)));
+        }
+
+        @Override
+        public String toString() {
+            return "passthrough";
         }
     };
 
@@ -265,12 +288,12 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
     static <A> @NotNull Codec<A> of(final @NotNull Encoder<A> encoder, final @NotNull Decoder<A> decoder, final @NotNull String name) {
         return new Codec<>() {
             @Override
-            public <T> A decode(final T input, final @NotNull DataOps<T> ops) {
+            public <T> @NotNull DataResult<Pair<A, T>> decode(final T input, final @NotNull DataOps<T> ops) {
                 return decoder.decode(input, ops);
             }
 
             @Override
-            public <T> T encode(final A input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
+            public <T> @NotNull DataResult<T> encode(final A input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
                 return encoder.encode(input, ops, prefix);
             }
 
@@ -346,7 +369,6 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
      * @return A new list codec.
      * @see ListCodec
      */
-    @SuppressWarnings("AmbiguousMethodReference")
     static <E> @NotNull Codec<List<E>> list(final @NotNull Codec<E> elementCodec) {
         return new ListCodec<>(elementCodec);
     }
@@ -386,16 +408,13 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
      * <p>This codec will throw an {@link IllegalArgumentException} if the
      * input or output value provided is not within the required bounds.</p>
      *
-     * @param min The minimum value.
-     * @param max The maximum value.
+     * @param minInclusive The minimum value (inclusive).
+     * @param maxInclusive The maximum value (inclusive).
      * @return A new int range codec.
      */
-    static @NotNull Codec<Integer> intRange(final int min, final int max) {
-        final Function<Integer, Integer> checker = value -> {
-            if (value < min || value > max) throw new IllegalArgumentException("Value " + value + " outside of range [" + min + ":" + max + "]");
-            return value;
-        };
-        return Codec.INT.xmap(checker, checker);
+    static @NotNull Codec<Integer> intRange(final int minInclusive, final int maxInclusive) {
+        final Function<Integer, DataResult<Integer>> checker = CodecUtil.checkRange(minInclusive, maxInclusive);
+        return Codec.INT.flatXmap(checker, checker);
     }
 
     /**
@@ -405,16 +424,13 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
      * <p>This codec will throw an {@link IllegalArgumentException} if the
      * input or output value provided is not within the required bounds.</p>
      *
-     * @param min The minimum value.
-     * @param max The maximum value.
+     * @param minInclusive The minimum value (inclusive).
+     * @param maxInclusive The maximum value (inclusive).
      * @return A new float range codec.
      */
-    static @NotNull Codec<Float> floatRange(final float min, final float max) {
-        final Function<Float, Float> checker = value -> {
-            if (value < min || value > max) throw new IllegalArgumentException("Value " + value + " outside of range [" + min + ":" + max + "]");
-            return value;
-        };
-        return Codec.FLOAT.xmap(checker, checker);
+    static @NotNull Codec<Float> floatRange(final float minInclusive, final float maxInclusive) {
+        final Function<Float, DataResult<Float>> checker = CodecUtil.checkRange(minInclusive, maxInclusive);
+        return Codec.FLOAT.flatXmap(checker, checker);
     }
 
     /**
@@ -424,16 +440,13 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
      * <p>This codec will throw an {@link IllegalArgumentException} if the
      * input or output value provided is not within the required bounds.</p>
      *
-     * @param min The minimum value.
-     * @param max The maximum value.
+     * @param minInclusive The minimum value (inclusive).
+     * @param maxInclusive The maximum value (inclusive).
      * @return A new double range codec.
      */
-    static @NotNull Codec<Double> doubleRange(final double min, final double max) {
-        final Function<Double, Double> checker = value -> {
-            if (value < min || value > max) throw new IllegalArgumentException("Value " + value + " outside of range [" + min + ":" + max + "]");
-            return value;
-        };
-        return Codec.DOUBLE.xmap(checker, checker);
+    static @NotNull Codec<Double> doubleRange(final double minInclusive, final double maxInclusive) {
+        final Function<Double, DataResult<Double>> checker = CodecUtil.checkRange(minInclusive, maxInclusive);
+        return Codec.DOUBLE.flatXmap(checker, checker);
     }
 
     /**
@@ -442,9 +455,8 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
      *
      * @return A new list codec.
      */
-    @SuppressWarnings("AmbiguousMethodReference")
     @ApiStatus.NonExtendable
-    default @NotNull Codec<List<A>> list() {
+    default @NotNull Codec<List<A>> listOf() {
         return list(this);
     }
 
@@ -504,6 +516,63 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
     }
 
     /**
+     * Maps this codec to a new codec that applies the given to and from
+     * functions to the input and output values respectively.
+     *
+     * <p>This is very similar to {@link #xmap(Function, Function)}, but the to
+     * function in this method returns a {@link DataResult}, as it flat maps
+     * the decoder.</p>
+     *
+     * @param to The mapper to transform the output value.
+     * @param from The mapper to transform the input value.
+     * @param <B> The new codec type.
+     * @return The mapped codec.
+     */
+    @ApiStatus.NonExtendable
+    default <B> @NotNull Codec<B> comapFlatMap(final @NotNull Function<? super A, ? extends DataResult<? extends B>> to,
+                                               final @NotNull Function<? super B, ? extends A> from) {
+        return of(comap(from), flatMap(to), this + "[comapFlatMapped]");
+    }
+
+    /**
+     * Maps this codec to a new codec that applies the given to and from
+     * functions to the input and output values respectively.
+     *
+     * <p>This is very similar to {@link #xmap(Function, Function)}, but the
+     * from function in this method returns a {@link DataResult}, as it flat
+     * comaps the encoder.</p>
+     *
+     * @param to The mapper to transform the output value.
+     * @param from The mapper to transform the input value.
+     * @param <B> The new codec type.
+     * @return The mapped codec.
+     */
+    @ApiStatus.NonExtendable
+    default <B> @NotNull Codec<B> flatComapMap(final @NotNull Function<? super A, ? extends B> to,
+                                               final @NotNull Function<? super B, ? extends DataResult<? extends A>> from) {
+        return of(flatComap(from), map(to), this + "[flatComapMapped]");
+    }
+
+    /**
+     * Maps this codec to a new codec that applies the given to and from
+     * functions to the input and output values respectively.
+     *
+     * <p>This is very similar to {@link #xmap(Function, Function)}, but both
+     * functions in this method return a {@link DataResult}, as it flat maps
+     * both the encoder and the decoder.</p>
+     *
+     * @param to The mapper to transform the output value.
+     * @param from The mapper to transform the input value.
+     * @param <B> The new codec type.
+     * @return The mapped codec.
+     */
+    @ApiStatus.NonExtendable
+    default <B> @NotNull Codec<B> flatXmap(final @NotNull Function<? super A, ? extends DataResult<? extends B>> to,
+                                           final @NotNull Function<? super B, ? extends DataResult<? extends A>> from) {
+        return of(flatComap(from), flatMap(to), this + "[flatXmapped]");
+    }
+
+    /**
      * Creates a new map codec that processes this codec as a value of a field
      * with a key of the given name.
      *
@@ -512,8 +581,8 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
      */
     @Override
     @ApiStatus.NonExtendable
-    default @NotNull MapCodec<A> field(final @NotNull String name) {
-        return MapCodec.of(Encoder.super.field(name), Decoder.super.field(name), () -> "Field[" + name + ": " + this + "]");
+    default @NotNull MapCodec<A> fieldOf(final @NotNull String name) {
+        return MapCodec.of(Encoder.super.fieldOf(name), Decoder.super.fieldOf(name), () -> "Field[" + name + ": " + this + "]");
     }
 
     /**
@@ -524,7 +593,7 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
      * @return A new optional field map codec.
      */
     @ApiStatus.NonExtendable
-    default @NotNull MapCodec<Optional<A>> optionalField(final @NotNull String name) {
+    default @NotNull MapCodec<Optional<A>> optionalFieldOf(final @NotNull String name) {
         return optionalField(name, this);
     }
 
@@ -539,35 +608,141 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
      * @return A new optional field map codec.
      */
     @ApiStatus.NonExtendable
-    default @NotNull MapCodec<A> optionalField(final @NotNull String name, final @NotNull A defaultValue) {
+    default @NotNull MapCodec<A> optionalFieldOf(final @NotNull String name, final @NotNull A defaultValue) {
         return optionalField(name, this).xmap(
                 value -> value.orElse(defaultValue),
                 value -> Objects.equals(value, defaultValue) ? Optional.empty() : Optional.of(value)
         );
     }
 
+    /**
+     * Creates a new map codec that optionally processes this codec as a value
+     * of a field with a key of the given name, returning the default value if
+     * the field is not present, and encoding nothing if the value is the
+     * default value.
+     *
+     * @param name The field name.
+     * @param defaultValue The default value.
+     * @param defaultLifecycle The lifecycle of the default value.
+     * @return A new optional field map codec.
+     */
+    @ApiStatus.NonExtendable
+    default MapCodec<A> optionalFieldOf(final @NotNull String name, final @NotNull A defaultValue, final @NotNull Lifecycle defaultLifecycle) {
+        return optionalFieldOf(name, Lifecycle.experimental(), defaultValue, defaultLifecycle);
+    }
+
+    /**
+     * Creates a new map codec that optionally processes this codec as a value
+     * of a field with a key of the given name, returning the default value if
+     * the field is not present, and encoding nothing if the value is the
+     * default value.
+     *
+     * @param name The field name.
+     * @param fieldLifecycle The lifecycle of the field.
+     * @param defaultValue The default value.
+     * @param defaultLifecycle The lifecycle of the default value.
+     * @return A new optional field map codec.
+     */
+    @ApiStatus.NonExtendable
+    default MapCodec<A> optionalFieldOf(final @NotNull String name, final @NotNull Lifecycle fieldLifecycle, final @NotNull A defaultValue,
+                                        final @NotNull Lifecycle defaultLifecycle) {
+        return optionalField(name, this).stable().flatXmap(
+                o -> o.map(v -> DataResult.success(v, fieldLifecycle)).orElse(DataResult.success(defaultValue, defaultLifecycle)),
+                a -> Objects.equals(a, defaultValue) ?
+                        DataResult.success(Optional.empty(), defaultLifecycle) :
+                        DataResult.success(Optional.of(a), fieldLifecycle)
+        );
+    }
+
+    @Override
+    default @NotNull Codec<A> withLifecycle(final @NotNull Lifecycle lifecycle) {
+        return new Codec<>() {
+            @Override
+            public <T> @NotNull DataResult<Pair<A, T>> decode(final T input, final @NotNull DataOps<T> ops) {
+                return Codec.this.decode(input, ops).withLifecycle(lifecycle);
+            }
+
+            @Override
+            public <T> @NotNull DataResult<T> encode(final A input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
+                return Codec.this.encode(input, ops, prefix).withLifecycle(lifecycle);
+            }
+
+            @Override
+            public String toString() {
+                return Codec.this.toString();
+            }
+        };
+    }
+
+    /**
+     * Creates a new codec that sets the lifecycle of the results to stable.
+     *
+     * @return A new stable codec.
+     */
+    @ApiStatus.NonExtendable
+    default @NotNull Codec<A> stable() {
+        return withLifecycle(Lifecycle.stable());
+    }
+
+    /**
+     * Creates a new codec that sets the lifecycle of the results to
+     * deprecated, since the given version.
+     *
+     * @param since The version the codec is deprecated since.
+     * @return A new deprecated codec.
+     */
+    @ApiStatus.NonExtendable
+    default @NotNull Codec<A> deprecated(final int since) {
+        return withLifecycle(Lifecycle.deprecated(since));
+    }
+
+    @Override
+    default @NotNull Codec<A> promotePartial(final @NotNull Consumer<String> onError) {
+        return of(this, Decoder.super.promotePartial(onError));
+    }
+
     @SuppressWarnings("MissingJavadocMethod")
+    @ApiStatus.NonExtendable
     default <E> @NotNull Codec<E> dispatch(final @NotNull Function<? super E, ? extends A> type,
                                            final @NotNull Function<? super A, ? extends Codec<? extends E>> codec) {
         return dispatch("type", type, codec);
     }
 
     @SuppressWarnings("MissingJavadocMethod")
+    @ApiStatus.NonExtendable
     default <E> @NotNull Codec<E> dispatch(final @NotNull String typeKey, final @NotNull Function<? super E, ? extends A> type,
                                            final @NotNull Function<? super A, ? extends Codec<? extends E>> codec) {
         return dispatchMap(typeKey, type, codec).codec();
     }
 
     @SuppressWarnings("MissingJavadocMethod")
+    @ApiStatus.NonExtendable
+    default <E> @NotNull Codec<E> dispatchStable(final @NotNull Function<? super E, ? extends A> type,
+                                                 final @NotNull Function<? super A, ? extends Codec<? extends E>> codec) {
+        return partialDispatch("type", e -> DataResult.success(type.apply(e), Lifecycle.stable()),
+                a -> DataResult.success(codec.apply(a), Lifecycle.stable()));
+    }
+
+    @SuppressWarnings("MissingJavadocMethod")
+    @ApiStatus.NonExtendable
+    default <E> @NotNull Codec<E> partialDispatch(
+            final @NotNull String typeKey, final @NotNull Function<? super E, ? extends DataResult<? extends A>> type,
+            final @NotNull Function<? super A, ? extends DataResult<? extends Codec<? extends E>>> codec) {
+        return new KeyDispatchCodec<>(typeKey, this, type, codec).codec();
+    }
+
+    @SuppressWarnings("MissingJavadocMethod")
+    @ApiStatus.NonExtendable
     default <E> @NotNull MapCodec<E> dispatchMap(final @NotNull Function<? super E, ? extends A> type,
                                                  final @NotNull Function<? super A, ? extends Codec<? extends E>> codec) {
         return dispatchMap("type", type, codec);
     }
 
     @SuppressWarnings("MissingJavadocMethod")
+    @ApiStatus.NonExtendable
     default <E> @NotNull MapCodec<E> dispatchMap(final @NotNull String typeKey, final @NotNull Function<? super E, ? extends A> type,
                                                  final @NotNull Function<? super A, ? extends Codec<? extends E>> codec) {
-        return new KeyDispatchCodec<>(typeKey, this, type, codec);
+        return new KeyDispatchCodec<>(typeKey, this, type.andThen(DataResult::success), codec.andThen(DataResult::success));
     }
 
     /**
@@ -580,8 +755,38 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
      * @return A new or else codec.
      */
     @ApiStatus.NonExtendable
-    default @NotNull Codec<A> orElse(final @NotNull A value, final @NotNull Consumer<Exception> onError) {
-        return CodecUtil.orElseGet(this, () -> value, onError, () -> "OrElse[" + onError + " " + value + "]");
+    default @NotNull Codec<A> orElse(final @NotNull A value, final @NotNull Consumer<String> onError) {
+        return orElse(value, CodecUtil.consumerToFunction(onError));
+    }
+
+    /**
+     * Creates a new codec that attempts to encode/decode the input/output,
+     * calling the given onError handler if an error occurs, and returning the
+     * given value if the decoder fails.
+     *
+     * @param value The default value to use if the decoder fails.
+     * @param onError The handler to call if an error occurs.
+     * @return A new or else codec.
+     */
+    @ApiStatus.NonExtendable
+    default @NotNull Codec<A> orElse(final @NotNull A value, final @NotNull UnaryOperator<String> onError) {
+        return mapResult(new ResultFunction<>() {
+            @Override
+            public <T> @NotNull DataResult<Pair<A, T>> apply(final T input, final @NotNull DataOps<T> ops,
+                                                             final @NotNull DataResult<Pair<A, T>> result) {
+                return DataResult.success(result.mapError(onError).result().orElseGet(() -> Pair.of(value, input)));
+            }
+
+            @Override
+            public <T> @NotNull DataResult<T> coApply(final A input, final @NotNull DataOps<T> ops, final @NotNull DataResult<T> result) {
+                return result.mapError(onError);
+            }
+
+            @Override
+            public String toString() {
+                return "OrElse[" + onError + " " + value + "]";
+            }
+        });
     }
 
     /**
@@ -595,8 +800,39 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
      * @return A new or else codec.
      */
     @ApiStatus.NonExtendable
-    default @NotNull Codec<A> orElseGet(final @NotNull Supplier<A> value, final @NotNull Consumer<Exception> onError) {
-        return CodecUtil.orElseGet(this, value, onError, () -> "OrElseGet[" + onError + " " + value.get() + "]");
+    default @NotNull Codec<A> orElseGet(final @NotNull Supplier<A> value, final @NotNull Consumer<String> onError) {
+        return orElseGet(value, CodecUtil.consumerToFunction(onError));
+    }
+
+    /**
+     * Creates a new codec that attempts to encode/decode the input/output,
+     * calling the given onError handler if an error occurs, and returning the
+     * result of applying the given value supplier if the decoder fails.
+     *
+     * @param value The default value supplier to get the result of if the
+     *              decoder fails.
+     * @param onError The handler to call if an error occurs.
+     * @return A new or else codec.
+     */
+    @ApiStatus.NonExtendable
+    default @NotNull Codec<A> orElseGet(final @NotNull Supplier<A> value, final @NotNull UnaryOperator<String> onError) {
+        return mapResult(new ResultFunction<>() {
+            @Override
+            public <T> @NotNull DataResult<Pair<A, T>> apply(final T input, final @NotNull DataOps<T> ops,
+                                                             final @NotNull DataResult<Pair<A, T>> result) {
+                return DataResult.success(result.mapError(onError).result().orElseGet(() -> Pair.of(value.get(), input)));
+            }
+
+            @Override
+            public <T> @NotNull DataResult<T> coApply(final A input, final @NotNull DataOps<T> ops, final @NotNull DataResult<T> result) {
+                return result.mapError(onError);
+            }
+
+            @Override
+            public String toString() {
+                return "OrElseGet[" + onError + " " + value.get() + "]";
+            }
+        });
     }
 
     /**
@@ -608,7 +844,23 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
      */
     @ApiStatus.NonExtendable
     default @NotNull Codec<A> orElse(final @NotNull A value) {
-        return CodecUtil.orElseGet(this, () -> value, () -> "OrElse[" + value + "]");
+        return mapResult(new ResultFunction<>() {
+            @Override
+            public <T> @NotNull DataResult<Pair<A, T>> apply(final T input, final @NotNull DataOps<T> ops,
+                                                             final @NotNull DataResult<Pair<A, T>> result) {
+                return DataResult.success(result.result().orElseGet(() -> Pair.of(value, input)));
+            }
+
+            @Override
+            public <T> @NotNull DataResult<T> coApply(final A input, final @NotNull DataOps<T> ops, final @NotNull DataResult<T> result) {
+                return result;
+            }
+
+            @Override
+            public String toString() {
+                return "OrElse[" + value + "]";
+            }
+        });
     }
 
     /**
@@ -622,7 +874,23 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
      */
     @ApiStatus.NonExtendable
     default @NotNull Codec<A> orElseGet(final @NotNull Supplier<A> value) {
-        return CodecUtil.orElseGet(this, value, () -> "OrElseGet[" + value.get() + "]");
+        return mapResult(new ResultFunction<>() {
+            @Override
+            public <T> @NotNull DataResult<Pair<A, T>> apply(final T input, final @NotNull DataOps<T> ops,
+                                                             final @NotNull DataResult<Pair<A, T>> result) {
+                return DataResult.success(result.result().orElseGet(() -> Pair.of(value.get(), input)));
+            }
+
+            @Override
+            public <T> @NotNull DataResult<T> coApply(final A input, final @NotNull DataOps<T> ops, final @NotNull DataResult<T> result) {
+                return result;
+            }
+
+            @Override
+            public String toString() {
+                return "OrElseGet[" + value.get() + "]";
+            }
+        });
     }
 
     /**
@@ -636,21 +904,13 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
     default @NotNull Codec<A> mapResult(final ResultFunction<A> function) {
         return new Codec<>() {
             @Override
-            public <T> A decode(final T input, final @NotNull DataOps<T> ops) {
-                try {
-                    return function.apply(input, ops, Either.left(Codec.this.decode(input, ops)));
-                } catch (final Exception exception) {
-                    return function.apply(input, ops, Either.right(exception));
-                }
+            public <T> @NotNull DataResult<Pair<A, T>> decode(final T input, final @NotNull DataOps<T> ops) {
+                return function.apply(input, ops, Codec.this.decode(input, ops));
             }
 
             @Override
-            public <T> T encode(final A input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
-                try {
-                    return function.coApply(input, ops, Codec.this.encode(input, ops, prefix), null);
-                } catch (final Exception exception) {
-                    return function.coApply(input, ops, prefix, exception);
-                }
+            public <T> @NotNull DataResult<T> encode(final A input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
+                return function.coApply(input, ops, Codec.this.encode(input, ops, prefix));
             }
 
             @Override
@@ -677,13 +937,11 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
          *
          * @param input The input from the decoder.
          * @param ops The data operations from the decoder.
-         * @param resultOrError The result that the decoder produced, or the
-         *                      error that occurred when attempting to decode
-         *                      the result with the decoder.
+         * @param result The result that the decoder produced.
          * @param <T> The data type from the decoder.
          * @return The result.
          */
-        <T> A apply(final T input, final @NotNull DataOps<T> ops, final @NotNull Either<A, Exception> resultOrError);
+        <T> @NotNull DataResult<Pair<A, T>> apply(final T input, final @NotNull DataOps<T> ops, final @NotNull DataResult<Pair<A, T>> result);
 
         /**
          * Returns the result that should be returned from the encoder.
@@ -694,14 +952,11 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
          *
          * @param input The input from the encoder.
          * @param ops The data operations from the encoder.
-         * @param result The result that the encoder produced, or the prefix
-         *               that was provided if there was an error.
-         * @param exception The exception produced by the encoder, if one was
-         *                  produced.
+         * @param result The result that the encoder produced.
          * @param <T> The data type from the encoder.
          * @return The result. This should always be the given result if a
          *         different result can/should not be provided.
          */
-        <T> T coApply(final A input, final @NotNull DataOps<T> ops, final T result, final @Nullable Exception exception);
+        <T> @NotNull DataResult<T> coApply(final A input, final @NotNull DataOps<T> ops, final @NotNull DataResult<T> result);
     }
 }

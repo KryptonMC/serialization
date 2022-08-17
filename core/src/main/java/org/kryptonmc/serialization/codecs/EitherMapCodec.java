@@ -15,6 +15,7 @@ package org.kryptonmc.serialization.codecs;
 
 import org.jetbrains.annotations.NotNull;
 import org.kryptonmc.serialization.DataOps;
+import org.kryptonmc.serialization.DataResult;
 import org.kryptonmc.serialization.MapCodec;
 import org.kryptonmc.serialization.MapLike;
 import org.kryptonmc.serialization.RecordBuilder;
@@ -32,16 +33,14 @@ import org.kryptonmc.util.Either;
 public record EitherMapCodec<L, R>(@NotNull MapCodec<L> left, @NotNull MapCodec<R> right) implements MapCodec<Either<L, R>> {
 
     @Override
-    public @NotNull <T> Either<L, R> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
-        try {
-            return Either.left(left.decode(input, ops));
-        } catch (final Exception ignored) {
-            return Either.right(right.decode(input, ops));
-        }
+    public <T> @NotNull DataResult<Either<L, R>> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+        final DataResult<Either<L, R>> leftRead = left.decode(input, ops).map(Either::left);
+        if (leftRead.result().isPresent()) return leftRead;
+        return right.decode(input, ops).map(Either::right);
     }
 
     @Override
-    public @NotNull <T> RecordBuilder<T> encode(final @NotNull Either<L, R> input, final @NotNull DataOps<T> ops,
+    public <T> @NotNull RecordBuilder<T> encode(final @NotNull Either<L, R> input, final @NotNull DataOps<T> ops,
                                                 final @NotNull RecordBuilder<T> prefix) {
         return input.map(value -> left.encode(value, ops, prefix), value -> right.encode(value, ops, prefix));
     }

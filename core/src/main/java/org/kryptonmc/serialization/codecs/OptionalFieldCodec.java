@@ -17,6 +17,7 @@ import java.util.Optional;
 import org.jetbrains.annotations.NotNull;
 import org.kryptonmc.serialization.Codec;
 import org.kryptonmc.serialization.DataOps;
+import org.kryptonmc.serialization.DataResult;
 import org.kryptonmc.serialization.MapCodec;
 import org.kryptonmc.serialization.MapLike;
 import org.kryptonmc.serialization.RecordBuilder;
@@ -36,18 +37,16 @@ import org.kryptonmc.serialization.RecordBuilder;
 public record OptionalFieldCodec<A>(@NotNull String name, @NotNull Codec<A> elementCodec) implements MapCodec<Optional<A>> {
 
     @Override
-    public @NotNull <T> Optional<A> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+    public <T> @NotNull DataResult<Optional<A>> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
         final var value = input.get(name);
-        if (value == null) return Optional.empty();
-        try {
-            return Optional.of(elementCodec.decode(value, ops));
-        } catch (final Exception ignored) {
-            return Optional.empty();
-        }
+        if (value == null) return DataResult.success(Optional.empty());
+        final var parsed = elementCodec.read(value, ops);
+        if (parsed.result().isPresent()) return parsed.map(Optional::of);
+        return DataResult.success(Optional.empty());
     }
 
     @Override
-    public @NotNull <T> RecordBuilder<T> encode(final @NotNull Optional<A> input, final @NotNull DataOps<T> ops,
+    public <T> @NotNull RecordBuilder<T> encode(final @NotNull Optional<A> input, final @NotNull DataOps<T> ops,
                                                 final @NotNull RecordBuilder<T> prefix) {
         // noinspection OptionalIsPresent
         if (input.isPresent()) return prefix.add(name, elementCodec.encodeStart(input.get(), ops));

@@ -13,6 +13,7 @@
  */
 package org.kryptonmc.serialization;
 
+import com.google.common.collect.ImmutableMap;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
@@ -37,88 +38,116 @@ public interface DataOps<T> {
      */
     @NotNull T empty();
 
-    default boolean getBooleanValue(final @NotNull T input) {
-        return getNumberValue(input).byteValue() != 0;
+    default @NotNull T emptyMap() {
+        return createMap(ImmutableMap.of());
     }
 
-    @NotNull Number getNumberValue(final @NotNull T input);
+    default @NotNull T emptyList() {
+        return createList(Stream.empty());
+    }
+
+    default @NotNull DataResult<Boolean> getBooleanValue(final @NotNull T input) {
+        return getNumberValue(input).map(number -> number.byteValue() != 0);
+    }
+
+    @NotNull DataResult<Number> getNumberValue(final @NotNull T input);
 
     default @NotNull Number getNumberValue(final @NotNull T input, final @NotNull Number defaultValue) {
-        try {
-            return getNumberValue(input);
-        } catch (final Exception ignored) {
-            return defaultValue;
-        }
+        return getNumberValue(input).result().orElse(defaultValue);
     }
 
-    @NotNull String getStringValue(final @NotNull T input);
+    @NotNull DataResult<String> getStringValue(final @NotNull T input);
 
-    default @NotNull T mergeToPrimitive(final @NotNull T prefix, final @NotNull T value) {
-        if (!Objects.equals(prefix, empty())) throw new IllegalArgumentException("Cannot append primitive value " + value + " to " + prefix);
-        return value;
+    default @NotNull DataResult<T> mergeToPrimitive(final @NotNull T prefix, final @NotNull T value) {
+        if (!Objects.equals(prefix, empty())) return DataResult.error("Cannot append primitive value " + value + " to " + prefix + "!");
+        return DataResult.success(value);
     }
 
-    @NotNull Stream<T> getStream(final @NotNull T input);
+    @NotNull DataResult<Stream<T>> getStream(final @NotNull T input);
 
-    default @NotNull Consumer<Consumer<T>> getList(final @NotNull T input) {
-        return getStream(input)::forEach;
+    default @NotNull DataResult<Consumer<Consumer<T>>> getList(final @NotNull T input) {
+        return getStream(input).map(stream -> stream::forEach);
     }
 
-    @NotNull T mergeToList(final @NotNull T list, final @NotNull T value);
+    @NotNull DataResult<T> mergeToList(final @NotNull T list, final @NotNull T value);
 
-    default @NotNull T mergeToList(final @NotNull T list, final @NotNull List<T> values) {
-        var result = list;
+    default @NotNull DataResult<T> mergeToList(final @NotNull T list, final @NotNull List<T> values) {
+        var result = DataResult.success(list);
         for (final var value : values) {
-            result = mergeToList(result, value);
+            result = result.flatMap(r -> mergeToList(r, value));
         }
         return result;
     }
 
-    default @NotNull ByteBuffer getByteBuffer(final @NotNull T input) {
-        final var stream = getStream(input);
-        if (StreamUtil.noneThrow(stream, this::getNumberValue)) {
-            final var list = stream.toList();
-            final var buffer = ByteBuffer.wrap(new byte[list.size()]);
-            for (int i = 0; i < list.size(); i++) {
-                buffer.put(i, getNumberValue(list.get(i)).byteValue());
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
+    default @NotNull DataResult<ByteBuffer> getByteBuffer(final @NotNull T input) {
+        return getStream(input).flatMap(stream -> {
+            if (stream.allMatch(element -> getNumberValue(element).result().isPresent())) {
+                final var list = stream.toList();
+                final var buffer = ByteBuffer.wrap(new byte[list.size()]);
+                for (int i = 0; i < list.size(); i++) {
+                    // We already checked earlier if this is present.
+                    buffer.put(i, getNumberValue(list.get(i)).result().get().byteValue());
+                }
+                return DataResult.success(buffer);
             }
-            return buffer;
-        }
-        throw new IllegalArgumentException("Some elements in the given input are not bytes! Input: " + input);
+            return DataResult.error("Some elements in the given input " + input + " are not bytes!");
+        });
     }
 
-    default @NotNull IntStream getIntStream(final @NotNull T input) {
-        final var stream = getStream(input);
-        if (StreamUtil.noneThrow(stream, this::getNumberValue)) return stream.mapToInt(element -> getNumberValue(element).intValue());
-        throw new IllegalArgumentException("Some elements in the given input are not integers! Input: " + input);
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
+    default @NotNull DataResult<IntStream> getIntStream(final @NotNull T input) {
+        return getStream(input).flatMap(stream -> {
+            if (stream.allMatch(element -> getNumberValue(element).result().isPresent())) {
+                // We already checked earlier if this is present.
+                return DataResult.success(stream.mapToInt(element -> getNumberValue(element).result().get().intValue()));
+            }
+            return DataResult.error("Some elements in the given input " + input + " are not integers!");
+        });
     }
 
-    default @NotNull LongStream getLongStream(final @NotNull T input) {
-        final var stream = getStream(input);
-        if (StreamUtil.noneThrow(stream, this::getNumberValue)) return stream.mapToLong(element -> getNumberValue(element).longValue());
-        throw new IllegalArgumentException("Some elements in the given input are not longs! Input: " + input);
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
+    default @NotNull DataResult<LongStream> getLongStream(final @NotNull T input) {
+        return getStream(input).flatMap(stream -> {
+            if (stream.allMatch(element -> getNumberValue(element).result().isPresent())) {
+                // We already checked earlier if this is present.
+                return DataResult.success(stream.mapToLong(element -> getNumberValue(element).result().get().longValue()));
+            }
+            return DataResult.error("Some elements in the given input " + input + " are not longs!");
+        });
     }
 
-    @NotNull Stream<Pair<T, T>> getMapValues(final @NotNull T input);
+    @NotNull DataResult<Stream<Pair<T, T>>> getMapValues(final @NotNull T input);
 
-    default @NotNull Consumer<BiConsumer<T, T>> getMapEntries(final @NotNull T input) {
-        final var values = getMapValues(input);
-        return consumer -> values.forEach(value -> consumer.accept(value.first(), value.second()));
+    default @NotNull DataResult<Consumer<BiConsumer<T, T>>> getMapEntries(final @NotNull T input) {
+        return getMapValues(input).map(stream -> consumer -> stream.forEach(entry -> consumer.accept(entry.first(), entry.second())));
     }
 
-    default @NotNull MapLike<T> getMap(final @NotNull T input) {
-        return MapLike.forMap(getMapValues(input).collect(Pair.toMap()), this);
+    default @NotNull DataResult<MapLike<T>> getMap(final @NotNull T input) {
+        return getMapValues(input).flatMap(stream -> {
+            try {
+                return DataResult.success(MapLike.forMap(stream.collect(Pair.toMap()), this));
+            } catch (final IllegalStateException exception) {
+                return DataResult.error("Error whilst trying to build map for input " + input + ": " + exception.getMessage());
+            }
+        });
     }
 
-    @NotNull T mergeToMap(final @NotNull T map, final @NotNull T key, final @NotNull T value);
+    default @NotNull T set(final @NotNull T input, final @NotNull String key, final @NotNull T value) {
+        return mergeToMap(input, createString(key), value).result().orElse(input);
+    }
 
-    default @NotNull T mergeToMap(final @NotNull T map, final @NotNull MapLike<T> values) {
-        final AtomicReference<T> result = new AtomicReference<>(map);
-        values.entries().forEach(entry -> result.setPlain(mergeToMap(result.getPlain(), entry.first(), entry.second())));
+    @NotNull T remove(final @NotNull T input, final @NotNull String key);
+
+    @NotNull DataResult<T> mergeToMap(final @NotNull T map, final @NotNull T key, final @NotNull T value);
+
+    default @NotNull DataResult<T> mergeToMap(final @NotNull T map, final @NotNull MapLike<T> values) {
+        final AtomicReference<DataResult<T>> result = new AtomicReference<>(DataResult.success(map));
+        values.entries().forEach(entry -> result.setPlain(result.getPlain().flatMap(r -> mergeToMap(r, entry.first(), entry.second()))));
         return result.getPlain();
     }
 
-    default @NotNull T mergeToMap(final @NotNull T map, final @NotNull Map<T, T> values) {
+    default @NotNull DataResult<T> mergeToMap(final @NotNull T map, final @NotNull Map<T, T> values) {
         return mergeToMap(map, MapLike.forMap(values, this));
     }
 
@@ -185,11 +214,11 @@ public interface DataOps<T> {
     <U> @NotNull U convertTo(final @NotNull DataOps<U> outOps, final @NotNull T input);
 
     default <U> @NotNull U convertList(final @NotNull DataOps<U> outOps, final @NotNull T input) {
-        return outOps.createList(StreamUtil.orEmpty(() -> getStream(input)).map(element -> convertTo(outOps, element)));
+        return outOps.createList(getStream(input).result().orElse(Stream.empty()).map(element -> convertTo(outOps, element)));
     }
 
     default <U> @NotNull U convertMap(final @NotNull DataOps<U> outOps, final @NotNull T input) {
-        return outOps.createMap(StreamUtil.orEmpty(() -> getMapValues(input))
+        return outOps.createMap(getMapValues(input).result().orElse(Stream.empty())
                 .map(entry -> Pair.of(convertTo(outOps, entry.first()), convertTo(outOps, entry.second()))));
     }
 }

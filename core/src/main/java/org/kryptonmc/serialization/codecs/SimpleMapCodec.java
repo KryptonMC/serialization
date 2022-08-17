@@ -17,6 +17,7 @@ import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 import org.kryptonmc.serialization.Codec;
 import org.kryptonmc.serialization.DataOps;
+import org.kryptonmc.serialization.DataResult;
 import org.kryptonmc.serialization.MapCodec;
 import org.kryptonmc.serialization.MapLike;
 import org.kryptonmc.serialization.RecordBuilder;
@@ -32,12 +33,12 @@ import org.kryptonmc.serialization.RecordBuilder;
 public record SimpleMapCodec<K, V>(@NotNull Codec<K> keyCodec, @NotNull Codec<V> valueCodec) implements BaseMapCodec<K, V>, MapCodec<Map<K, V>> {
 
     @Override
-    public @NotNull <T> Map<K, V> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+    public <T> @NotNull DataResult<Map<K, V>> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
         return BaseMapCodec.super.decode(input, ops);
     }
 
     @Override
-    public @NotNull <T> RecordBuilder<T> encode(final @NotNull Map<K, V> input, final @NotNull DataOps<T> ops,
+    public <T> @NotNull RecordBuilder<T> encode(final @NotNull Map<K, V> input, final @NotNull DataOps<T> ops,
                                                 final @NotNull RecordBuilder<T> prefix) {
         return BaseMapCodec.super.encode(input, ops, prefix);
     }

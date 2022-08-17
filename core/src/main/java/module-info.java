@@ -13,5 +13,6 @@ module org.kryptonmc.serialization {
     exports org.kryptonmc.util.function;
     exports org.kryptonmc.util.functional;
 
+    requires com.google.common;
     requires static transitive org.jetbrains.annotations;
 }

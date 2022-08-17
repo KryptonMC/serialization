@@ -40,6 +40,28 @@ public interface Encoder<A> {
     }
 
     /**
+     * Creates a new encoder that always returns a result with the given error
+     * message.
+     *
+     * @param error The error message.
+     * @param <A> The value type.
+     * @return A new error encoder.
+     */
+    static <A> @NotNull Encoder<A> error(final @NotNull String error) {
+        return new Encoder<>() {
+            @Override
+            public <T> @NotNull DataResult<T> encode(final A input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
+                return DataResult.error(error);
+            }
+
+            @Override
+            public String toString() {
+                return "ErrorEncoder[" + error + "]";
+            }
+        };
+    }
+
+    /**
      * Encodes the given input type to the given output data type using the
      * given operations to convert the input in to data type values.
      *
@@ -54,7 +76,7 @@ public interface Encoder<A> {
      * @param <T> The data type.
      * @return The encoded value.
      */
-    <T> T encode(final A input, final @NotNull DataOps<T> ops, final @NotNull T prefix);
+    <T> @NotNull DataResult<T> encode(final A input, final @NotNull DataOps<T> ops, final @NotNull T prefix);
 
     /**
      * Encodes the given input type to the given output data type using the
@@ -70,7 +92,7 @@ public interface Encoder<A> {
      * @return The encoded value.
      */
     @ApiStatus.NonExtendable
-    default <T> T encodeStart(final A input, final @NotNull DataOps<T> ops) {
+    default <T> @NotNull DataResult<T> encodeStart(final A input, final @NotNull DataOps<T> ops) {
         return encode(input, ops, ops.empty());
     }
 
@@ -82,7 +104,7 @@ public interface Encoder<A> {
      * @return A new field encoder.
      */
     @ApiStatus.NonExtendable
-    default @NotNull MapEncoder<A> field(final @NotNull String name) {
+    default @NotNull MapEncoder<A> fieldOf(final @NotNull String name) {
         return new FieldEncoder<>(name, this);
     }
 
@@ -102,13 +124,65 @@ public interface Encoder<A> {
     default <B> @NotNull Encoder<B> comap(final @NotNull Function<? super B, ? extends A> function) {
         return new Encoder<>() {
             @Override
-            public <T> T encode(final B input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
+            public <T> @NotNull DataResult<T> encode(final B input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
                 return Encoder.this.encode(function.apply(input), ops, prefix);
             }
 
             @Override
             public String toString() {
                 return Encoder.this + "[comapped]";
+            }
+        };
+    }
+
+    /**
+     * Maps this encoder to a new encoder, using the given function to map
+     * results from this encoder to a new type for the new encoder.
+     *
+     * <p>This method is called {@code flatComap} because we want to be able to
+     * differentiate it from {@link Decoder#flatMap(Function)}.</p>
+     *
+     * <p>This method is different to {@link #comap(Function)} in that the
+     * function returns a {@link DataResult}.</p>
+     *
+     * @param function The function to apply when mapping the encoded value
+     *                 from this encoder.
+     * @param <B> The new value type.
+     * @return The resulting mapped encoder.
+     */
+    @ApiStatus.NonExtendable
+    default <B> @NotNull Encoder<B> flatComap(final @NotNull Function<? super B, ? extends DataResult<? extends A>> function) {
+        return new Encoder<>() {
+            @Override
+            public <T> @NotNull DataResult<T> encode(final B input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
+                return function.apply(input).flatMap(a -> Encoder.this.encode(a, ops, prefix));
+            }
+
+            @Override
+            public String toString() {
+                return Encoder.this + "[flatComapped]";
+            }
+        };
+    }
+
+    /**
+     * Creates a new encoder that sets the lifecycle of the decoded result to
+     * the given lifecycle.
+     *
+     * @param lifecycle The lifecycle.
+     * @return A new encoder.
+     */
+    @ApiStatus.NonExtendable
+    default @NotNull Encoder<A> withLifecycle(final @NotNull Lifecycle lifecycle) {
+        return new Encoder<>() {
+            @Override
+            public <T> @NotNull DataResult<T> encode(final A input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
+                return Encoder.this.encode(input, ops, prefix).withLifecycle(lifecycle);
+            }
+
+            @Override
+            public String toString() {
+                return Encoder.this.toString();
             }
         };
     }

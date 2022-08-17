@@ -24,7 +24,7 @@ public interface CocartesianLike<T extends K1, C, Mu extends CocartesianLike.Mu>
     <A> @NotNull App<T, A> from(final @NotNull App<Either.Mu<C>, A> input);
 
     @Override
-    default @NotNull <F extends K1, A, B> App<F, App<T, B>> traverse(
+    default <F extends K1, A, B> @NotNull App<F, App<T, B>> traverse(
             final @NotNull Applicative<F, ?> applicative, final @NotNull Function<A, App<F, B>> function, final @NotNull App<T, A> input) {
         return applicative.map(this::from, new Either.Instance<C>().traverse(applicative, function, to(input)));
     }

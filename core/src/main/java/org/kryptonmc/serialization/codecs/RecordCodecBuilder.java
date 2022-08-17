@@ -18,8 +18,10 @@ import java.util.function.Function;
 import org.jetbrains.annotations.NotNull;
 import org.kryptonmc.serialization.Codec;
 import org.kryptonmc.serialization.DataOps;
+import org.kryptonmc.serialization.DataResult;
 import org.kryptonmc.serialization.Decoder;
 import org.kryptonmc.serialization.Encoder;
+import org.kryptonmc.serialization.Lifecycle;
 import org.kryptonmc.serialization.MapCodec;
 import org.kryptonmc.serialization.MapDecoder;
 import org.kryptonmc.serialization.MapEncoder;
@@ -104,6 +106,53 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
     }
 
     /**
+     * Creates a new record codec builder that uses the given instance as the
+     * result of decoding the data to the complex type, and does nothing when
+     * encoding objects to data, with the lifecycle of
+     * {@link Lifecycle#stable()}.
+     *
+     * @param instance The instance to use.
+     * @param <O> The input type.
+     * @param <F> The function type.
+     * @return The record codec builder.
+     */
+    public static <O, F> @NotNull RecordCodecBuilder<O, F> stable(final @NotNull F instance) {
+        return point(instance, Lifecycle.stable());
+    }
+
+    /**
+     * Creates a new record codec builder that uses the given instance as the
+     * result of decoding the data to the complex type, and does nothing when
+     * encoding objects to data, with the lifecycle of
+     * {@link Lifecycle#deprecated(int)}.
+     *
+     * @param instance The instance to use.
+     * @param since The since version for the deprecated lifecycle.
+     * @param <O> The input type.
+     * @param <F> The function type.
+     * @return The record codec builder.
+     */
+    public static <O, F> @NotNull RecordCodecBuilder<O, F> deprecated(final @NotNull F instance, final int since) {
+        return point(instance, Lifecycle.deprecated(since));
+    }
+
+    /**
+     * Creates a new record codec builder that uses the given instance as the
+     * result of decoding the data to the complex type, and does nothing when
+     * encoding objects to data, with the given lifecycle.
+     *
+     * @param instance The instance to use.
+     * @param lifecycle The lifecycle.
+     * @param <O> The input type.
+     * @param <F> The function type.
+     * @return The record codec builder.
+     */
+    public static <O, F> @NotNull RecordCodecBuilder<O, F> point(final @NotNull F instance, final @NotNull Lifecycle lifecycle) {
+        return new RecordCodecBuilder<>(o -> instance, o -> Encoder.<F>empty().withLifecycle(lifecycle),
+                Decoder.unit(instance).withLifecycle(lifecycle));
+    }
+
+    /**
      * Creates a new codec for serializing a complex type by applying the given
      * builder function to a new instance of the record codec builder
      * applicative.
@@ -133,12 +182,12 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
         final var builder = unbox(builderBox);
         return new MapCodec<>() {
             @Override
-            public <T> O decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+            public <T> @NotNull DataResult<O> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
                 return builder.decoder.decode(input, ops);
             }
 
             @Override
-            public @NotNull <T> RecordBuilder<T> encode(final O input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> prefix) {
+            public <T> @NotNull RecordBuilder<T> encode(final O input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> prefix) {
                 return builder.encoder.apply(input).encode(input, ops, prefix);
             }
 
@@ -204,7 +253,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
                             final var aFromO = a.getter.apply(o);
                             return new MapEncoder<R>() {
                                 @Override
-                                public @NotNull <T> RecordBuilder<T> encode(final R input, final @NotNull DataOps<T> ops,
+                                public <T> @NotNull RecordBuilder<T> encode(final R input, final @NotNull DataOps<T> ops,
                                                                             final @NotNull RecordBuilder<T> prefix) {
                                     aEncoder.encode(aFromO, ops, prefix);
                                     fEncoder.encode(a1 -> input, ops, prefix);
@@ -219,8 +268,8 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
                         },
                         new MapDecoder<>() {
                             @Override
-                            public <T> R decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
-                                return f.decoder.decode(input, ops).apply(a.decoder.decode(input, ops));
+                            public <T> @NotNull DataResult<R> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+                                return a.decoder.decode(input, ops).flatMap(ar -> f.decoder.decode(input, ops).map(fr -> fr.apply(ar)));
                             }
 
                             @Override
@@ -234,7 +283,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
 
         @SuppressWarnings("Convert2Diamond")
         @Override
-        public @NotNull <A, B, R> App<RecordCodecBuilder.Mu<O>, R> ap2(final @NotNull App<RecordCodecBuilder.Mu<O>, BiFunction<A, B, R>> function,
+        public <A, B, R> @NotNull App<RecordCodecBuilder.Mu<O>, R> ap2(final @NotNull App<RecordCodecBuilder.Mu<O>, BiFunction<A, B, R>> function,
                                                                        final @NotNull App<RecordCodecBuilder.Mu<O>, A> a,
                                                                        final @NotNull App<RecordCodecBuilder.Mu<O>, B> b) {
             final var f = unbox(function);
@@ -251,7 +300,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
                         // If we make it a diamond here, it fails to compile for some reason.
                         return new MapEncoder<R>() {
                             @Override
-                            public @NotNull <T> RecordBuilder<T> encode(final R input, final @NotNull DataOps<T> ops,
+                            public <T> @NotNull RecordBuilder<T> encode(final R input, final @NotNull DataOps<T> ops,
                                                                         final @NotNull RecordBuilder<T> prefix) {
                                 aEncoder.encode(aFromO, ops, prefix);
                                 bEncoder.encode(bFromO, ops, prefix);
@@ -267,8 +316,12 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
                     },
                     new MapDecoder<>() {
                         @Override
-                        public <T> R decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
-                            return f.decoder.decode(input, ops).apply(fa.decoder.decode(input, ops), fb.decoder.decode(input, ops));
+                        public <T> @NotNull DataResult<R> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+                            return unboxResult(DataResult.instance().ap2(
+                                    f.decoder.decode(input, ops),
+                                    fa.decoder.decode(input, ops),
+                                    fb.decoder.decode(input, ops)
+                            ));
                         }
 
                         @Override
@@ -281,7 +334,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
 
         @SuppressWarnings("Convert2Diamond")
         @Override
-        public @NotNull <A, B, C, R> App<RecordCodecBuilder.Mu<O>, R> ap3(
+        public <A, B, C, R> @NotNull App<RecordCodecBuilder.Mu<O>, R> ap3(
                 final @NotNull App<RecordCodecBuilder.Mu<O>, Function3<A, B, C, R>> function, final @NotNull App<RecordCodecBuilder.Mu<O>, A> a,
                 final @NotNull App<RecordCodecBuilder.Mu<O>, B> b, final @NotNull App<RecordCodecBuilder.Mu<O>, C> c) {
             final var f = unbox(function);
@@ -301,7 +354,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
                         // If we make it a diamond here, it fails to compile for some reason.
                         return new MapEncoder<R>() {
                             @Override
-                            public @NotNull <T> RecordBuilder<T> encode(final R input, final @NotNull DataOps<T> ops,
+                            public <T> @NotNull RecordBuilder<T> encode(final R input, final @NotNull DataOps<T> ops,
                                                                         final @NotNull RecordBuilder<T> prefix) {
                                 aEncoder.encode(aFromO, ops, prefix);
                                 bEncoder.encode(bFromO, ops, prefix);
@@ -318,12 +371,13 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
                     },
                     new MapDecoder<>() {
                         @Override
-                        public <T> R decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
-                            return f.decoder.decode(input, ops).apply(
+                        public <T> @NotNull DataResult<R> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+                            return unboxResult(DataResult.instance().ap3(
+                                    f.decoder.decode(input, ops),
                                     fa.decoder.decode(input, ops),
                                     fb.decoder.decode(input, ops),
                                     fc.decoder.decode(input, ops)
-                            );
+                            ));
                         }
 
                         @Override
@@ -336,7 +390,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
 
         @SuppressWarnings("Convert2Diamond")
         @Override
-        public @NotNull <A, B, C, D, R> App<RecordCodecBuilder.Mu<O>, R> ap4(
+        public <A, B, C, D, R> @NotNull App<RecordCodecBuilder.Mu<O>, R> ap4(
                 final @NotNull App<RecordCodecBuilder.Mu<O>, Function4<A, B, C, D, R>> function, final @NotNull App<RecordCodecBuilder.Mu<O>, A> a,
                 final @NotNull App<RecordCodecBuilder.Mu<O>, B> b, final @NotNull App<RecordCodecBuilder.Mu<O>, C> c,
                 final @NotNull App<RecordCodecBuilder.Mu<O>, D> d) {
@@ -360,7 +414,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
                         // If we make it a diamond here, it fails to compile for some reason.
                         return new MapEncoder<R>() {
                             @Override
-                            public @NotNull <T> RecordBuilder<T> encode(final R input, final @NotNull DataOps<T> ops,
+                            public <T> @NotNull RecordBuilder<T> encode(final R input, final @NotNull DataOps<T> ops,
                                                                         final @NotNull RecordBuilder<T> prefix) {
                                 aEncoder.encode(aFromO, ops, prefix);
                                 bEncoder.encode(bFromO, ops, prefix);
@@ -378,13 +432,14 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
                     },
                     new MapDecoder<>() {
                         @Override
-                        public <T> R decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
-                            return f.decoder.decode(input, ops).apply(
+                        public <T> @NotNull DataResult<R> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
+                            return unboxResult(DataResult.instance().ap4(
+                                    f.decoder.decode(input, ops),
                                     fa.decoder.decode(input, ops),
                                     fb.decoder.decode(input, ops),
                                     fc.decoder.decode(input, ops),
                                     fd.decoder.decode(input, ops)
-                            );
+                            ));
                         }
 
                         @Override
@@ -397,7 +452,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
 
         @SuppressWarnings("Convert2Diamond")
         @Override
-        public @NotNull <T, R> App<RecordCodecBuilder.Mu<O>, R> map(final @NotNull Function<? super T, ? extends R> function,
+        public <T, R> @NotNull App<RecordCodecBuilder.Mu<O>, R> map(final @NotNull Function<? super T, ? extends R> function,
                                                                     final @NotNull App<RecordCodecBuilder.Mu<O>, T> argument) {
             final var unbox = unbox(argument);
             final var getter = unbox.getter;
@@ -421,6 +476,10 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
                     },
                     unbox.decoder.map(function)
             );
+        }
+
+        private static <R> @NotNull DataResult<R> unboxResult(final @NotNull App<DataResult.Mu, R> box) {
+            return (DataResult<R>) box;
         }
 
         private static final class Mu<O> implements Applicative.Mu {
