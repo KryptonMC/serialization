@@ -18,6 +18,7 @@ import org.kryptonmc.util.Pair;
 
 interface PrimitiveCodec<A> extends Codec<A> {
 
+    @Override
     <T> @NotNull DataResult<A> read(final @NotNull T input, final @NotNull DataOps<T> ops);
 
     <T> @NotNull T write(final @NotNull A value, final @NotNull DataOps<T> ops);

@@ -133,6 +133,35 @@ public interface Decoder<A> {
     }
 
     /**
+     * Decodes the given dynamic data input to the standard type that this
+     * decoder is for.
+     *
+     * @param input The input.
+     * @param <T> The data type.
+     * @return The decoded result.
+     */
+    @ApiStatus.NonExtendable
+    default <T> @NotNull DataResult<Pair<A, T>> decode(final @NotNull Dynamic<T> input) {
+        return decode(input.value(), input.ops());
+    }
+
+    /**
+     * Decodes the given dynamic data input to the standard type that this
+     * decoder is for.
+     *
+     * <p>This method takes the result from {@link #decode(Dynamic)} and
+     * disregards any possible partial result that may be returned.</p>
+     *
+     * @param input The input.
+     * @param <T> The data type.
+     * @return The decoded result.
+     */
+    @ApiStatus.NonExtendable
+    default <T> @NotNull DataResult<A> read(final @NotNull Dynamic<T> input) {
+        return decode(input).map(Pair::first);
+    }
+
+    /**
      * Creates a new decoder that decodes a field with the given name using
      * this decoder to decode the value of the field.
      *
