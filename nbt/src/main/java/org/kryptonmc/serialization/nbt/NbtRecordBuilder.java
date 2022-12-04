@@ -12,6 +12,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.kryptonmc.nbt.CompoundTag;
 import org.kryptonmc.nbt.EndTag;
+import org.kryptonmc.nbt.ImmutableCompoundTag;
 import org.kryptonmc.nbt.Tag;
 import org.kryptonmc.serialization.DataResult;
 import org.kryptonmc.serialization.RecordBuilder;
@@ -24,7 +25,7 @@ final class NbtRecordBuilder extends RecordBuilder.AbstractStringBuilder<Tag, Co
 
     @Override
     protected @NotNull CompoundTag.Builder createBuilder() {
-        return CompoundTag.immutableBuilder();
+        return ImmutableCompoundTag.builder();
     }
 
     @Override

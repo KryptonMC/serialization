@@ -10,6 +10,7 @@ package org.kryptonmc.serialization.nbt;
 
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.collect.PeekingIterator;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,6 +30,8 @@ import org.kryptonmc.nbt.CompoundTag;
 import org.kryptonmc.nbt.DoubleTag;
 import org.kryptonmc.nbt.EndTag;
 import org.kryptonmc.nbt.FloatTag;
+import org.kryptonmc.nbt.ImmutableCompoundTag;
+import org.kryptonmc.nbt.ImmutableListTag;
 import org.kryptonmc.nbt.IntArrayTag;
 import org.kryptonmc.nbt.IntTag;
 import org.kryptonmc.nbt.ListTag;
@@ -66,7 +69,7 @@ public final class NbtOps implements DataOps<Tag> {
 
     @Override
     public @NotNull DataResult<String> getStringValue(final @NotNull Tag input) {
-        return input instanceof final StringTag tag ? DataResult.success(tag.asString()) : error("getStringValue", "string", input);
+        return input instanceof final StringTag tag ? DataResult.success(tag.value()) : error("getStringValue", "string", input);
     }
 
     @Override
@@ -76,8 +79,7 @@ public final class NbtOps implements DataOps<Tag> {
 
     @Override
     public @NotNull DataResult<Consumer<Consumer<Tag>>> getList(final @NotNull Tag input) {
-        if (input instanceof final CollectionTag<?> tag) return DataResult.success(tag::forEach);
-        return error("getList", "list", input);
+        return input instanceof final CollectionTag<?> tag ? DataResult.success(tag::forEach) : error("getList", "list", input);
     }
 
     /*
@@ -92,7 +94,7 @@ public final class NbtOps implements DataOps<Tag> {
         if (!(list instanceof CollectionTag<?>) && !(list instanceof EndTag)) {
             return DataResult.error("Cannot merge value " + value + " in to non-list " + list + "!");
         }
-        final var result = NbtUtil.createGenericList(list, value.getId());
+        final var result = NbtUtil.createGenericList(list, value.id());
         NbtUtil.fillOne(result, list, value);
         return DataResult.success(result);
     }
@@ -102,7 +104,7 @@ public final class NbtOps implements DataOps<Tag> {
         if (!(list instanceof CollectionTag<?>) && !(list instanceof EndTag)) {
             return DataResult.error("Cannot merge values " + values + " in to non-list " + list + "!");
         }
-        final var result = NbtUtil.createGenericList(list, values.stream().findFirst().map(Tag::getId).orElse(EndTag.ID));
+        final var result = NbtUtil.createGenericList(list, values.stream().findFirst().map(Tag::id).orElse(EndTag.ID));
         NbtUtil.fillMany(result, list, values);
         return DataResult.success(result);
     }
@@ -140,7 +142,7 @@ public final class NbtOps implements DataOps<Tag> {
         return DataResult.success(new MapLike<>() {
             @Override
             public @Nullable Tag get(final @NotNull Tag key) {
-                return tag.get(key.asString());
+                return get(key.asString());
             }
 
             @Override
@@ -163,9 +165,8 @@ public final class NbtOps implements DataOps<Tag> {
     @Override
     public @NotNull Tag remove(final @NotNull Tag input, final @NotNull String key) {
         if (!(input instanceof final CompoundTag tag)) return input;
-        final var result = CompoundTag.immutableBuilder();
-        tag.keySet().stream().filter(tagKey -> !Objects.equals(tagKey, key))
-                .forEach(tagKey -> result.put(tagKey, Objects.requireNonNull(tag.get(tagKey))));
+        final var result = ImmutableCompoundTag.builder();
+        tag.keySet().stream().filter(k -> !Objects.equals(k, key)).forEach(k -> result.put(k, Objects.requireNonNull(tag.get(k))));
         return result.build();
     }
 
@@ -175,11 +176,9 @@ public final class NbtOps implements DataOps<Tag> {
             return DataResult.error("Cannot merge value " + value + " in to non-map " + map + "!");
         }
         if (!(key instanceof StringTag)) return DataResult.error("Key " + key + " for mergeToMap is not a string!");
-        final var result = CompoundTag.immutableBuilder();
-        if (map instanceof final CompoundTag tag) {
-            tag.keySet().forEach(element -> result.put(element, Objects.requireNonNull(tag.get(element))));
-        }
-        result.put(key.asString(), value);
+        final var result = ImmutableCompoundTag.builder();
+        if (map instanceof final CompoundTag tag) tag.keySet().forEach(k -> result.put(k, Objects.requireNonNull(tag.get(k))));
+        result.put(((StringTag) key).value(), value);
         return DataResult.success(result.build());
     }
 
@@ -188,16 +187,16 @@ public final class NbtOps implements DataOps<Tag> {
         if (!(map instanceof CompoundTag) && !(map instanceof EndTag)) {
             return DataResult.error("Cannot merge values " + values + " in to non-map " + map + "!");
         }
-        final var result = CompoundTag.immutableBuilder();
-        if (map instanceof final CompoundTag tag) tag.keySet().forEach(element -> result.put(element, Objects.requireNonNull(tag.get(element))));
+        final var result = ImmutableCompoundTag.builder();
+        if (map instanceof final CompoundTag tag) tag.keySet().forEach(k -> result.put(k, Objects.requireNonNull(tag.get(k))));
 
         final var failed = new ArrayList<Tag>();
         values.entries().forEach(entry -> {
             final var key = entry.first();
-            if (!(key instanceof StringTag)) {
-                failed.add(key);
+            if (key instanceof final StringTag tag) {
+                result.put(tag.value(), Objects.requireNonNull(entry.second()));
             } else {
-                result.put(key.asString(), Objects.requireNonNull(entry.second()));
+                failed.add(key);
             }
         });
 
@@ -254,22 +253,13 @@ public final class NbtOps implements DataOps<Tag> {
 
     @Override
     public @NotNull Tag createList(final @NotNull Stream<Tag> input) {
-        final var iterator = Iterators.peekingIterator(input.iterator());
-        if (!iterator.hasNext()) return ListTag.empty();
+        final PeekingIterator<? extends Tag> iterator = Iterators.peekingIterator(input.iterator());
+        if (!iterator.hasNext()) return ListTag.EMPTY;
         final var first = iterator.peek();
-        if (first instanceof ByteTag) {
-            final var list = Lists.newArrayList(Iterators.transform(iterator, entry -> ((ByteTag) entry).getValue()));
-            return new ByteArrayTag(list);
-        }
-        if (first instanceof IntTag) {
-            final var list = Lists.newArrayList(Iterators.transform(iterator, entry -> ((IntTag) entry).getValue()));
-            return new IntArrayTag(list);
-        }
-        if (first instanceof LongTag) {
-            final var list = Lists.newArrayList(Iterators.transform(iterator, entry -> ((LongTag) entry).getValue()));
-            return new LongArrayTag(list);
-        }
-        final var result = ListTag.immutableBuilder();
+        if (first instanceof ByteTag) return ByteArrayTag.of(ArrayUtil.toByteArray(input));
+        if (first instanceof IntTag) return IntArrayTag.of(ArrayUtil.toIntArray(input));
+        if (first instanceof LongTag) return LongArrayTag.of(ArrayUtil.toLongArray(input));
+        final var result = ImmutableListTag.builder();
         while (iterator.hasNext()) {
             final var element = iterator.next();
             if (!(element instanceof EndTag)) result.add(element);
@@ -279,22 +269,22 @@ public final class NbtOps implements DataOps<Tag> {
 
     @Override
     public @NotNull Tag createByteList(final @NotNull ByteBuffer input) {
-        return new ByteArrayTag(NbtUtil.toArray(input));
+        return ByteArrayTag.of(NbtUtil.toArray(input));
     }
 
     @Override
     public @NotNull Tag createIntList(final @NotNull IntStream input) {
-        return new IntArrayTag(input.toArray());
+        return IntArrayTag.of(input.toArray());
     }
 
     @Override
     public @NotNull Tag createLongList(final @NotNull LongStream input) {
-        return new LongArrayTag(input.toArray());
+        return LongArrayTag.of(input.toArray());
     }
 
     @Override
     public @NotNull Tag createMap(final @NotNull Stream<Pair<Tag, Tag>> map) {
-        final var result = CompoundTag.immutableBuilder();
+        final var result = ImmutableCompoundTag.builder();
         map.forEach(entry -> result.put(Objects.requireNonNull(entry.first()).asString(), Objects.requireNonNull(entry.second())));
         return result.build();
     }
@@ -306,7 +296,7 @@ public final class NbtOps implements DataOps<Tag> {
 
     @Override
     public <U> @NotNull U convertTo(final @NotNull DataOps<U> outOps, final @NotNull Tag input) {
-        return switch (input.getId()) {
+        return switch (input.id()) {
             case EndTag.ID -> outOps.empty();
             case ByteTag.ID -> outOps.createByte(((NumberTag) input).toByte());
             case ShortTag.ID -> outOps.createShort(((NumberTag) input).toShort());
@@ -320,7 +310,7 @@ public final class NbtOps implements DataOps<Tag> {
             case CompoundTag.ID -> convertMap(outOps, input);
             case IntArrayTag.ID -> outOps.createIntList(Arrays.stream(((IntArrayTag) input).getData()));
             case LongArrayTag.ID -> outOps.createLongList(Arrays.stream(((LongArrayTag) input).getData()));
-            default -> throw new IllegalStateException("Unknown tag type " + input.getId() + "!");
+            default -> throw new IllegalStateException("Unknown tag type " + input.id() + "!");
         };
     }
 
