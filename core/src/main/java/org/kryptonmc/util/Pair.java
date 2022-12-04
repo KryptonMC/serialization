@@ -14,6 +14,7 @@
 package org.kryptonmc.util;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -57,6 +58,12 @@ public record Pair<F, S>(F first, S second) implements App<Pair.Mu<S>, F> {
      */
     public static <F, S> @NotNull Collector<Pair<F, S>, ?, Map<F, S>> toMap() {
         return Collectors.toMap(Pair::first, Pair::second);
+    }
+
+    @SuppressWarnings("MissingJavadocMethod")
+    public Pair {
+        Objects.requireNonNull(first, "first");
+        Objects.requireNonNull(second, "second");
     }
 
     /**

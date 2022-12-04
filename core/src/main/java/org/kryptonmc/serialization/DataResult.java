@@ -144,8 +144,8 @@ public final class DataResult<R> implements App<DataResult.Mu, R> {
     private final Lifecycle lifecycle;
 
     private DataResult(final @NotNull Either<R, PartialResult<R>> result, final @NotNull Lifecycle lifecycle) {
-        this.result = result;
-        this.lifecycle = lifecycle;
+        this.result = Objects.requireNonNull(result);
+        this.lifecycle = Objects.requireNonNull(lifecycle);
     }
 
     /**

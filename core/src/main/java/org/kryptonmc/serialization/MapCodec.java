@@ -14,6 +14,7 @@
 package org.kryptonmc.serialization;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -61,6 +62,9 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
      */
     static <A> @NotNull MapCodec<A> of(final @NotNull MapEncoder<A> encoder, final @NotNull MapDecoder<A> decoder,
                                        final @NotNull Supplier<String> name) {
+        Objects.requireNonNull(encoder, "encoder");
+        Objects.requireNonNull(decoder, "decoder");
+        Objects.requireNonNull(name, "name");
         return new MapCodec<>() {
             @Override
             public <T> @NotNull DataResult<A> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
@@ -179,6 +183,7 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
 
     @Override
     default @NotNull MapCodec<A> withLifecycle(final @NotNull Lifecycle lifecycle) {
+        Objects.requireNonNull(lifecycle, "lifecycle");
         return new MapCodec<>() {
             @Override
             public <T> @NotNull DataResult<A> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
@@ -257,6 +262,8 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
      * @see Codec#orElse(Object, UnaryOperator) The codec equivalent.
      */
     default @NotNull MapCodec<A> orElse(final @NotNull A value, final @NotNull UnaryOperator<String> onError) {
+        Objects.requireNonNull(value, "value");
+        Objects.requireNonNull(onError, "onError");
         return mapResult(new ResultFunction<>() {
             @Override
             public <T> @NotNull DataResult<A> apply(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops,
@@ -301,6 +308,8 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
      */
     @ApiStatus.NonExtendable
     default @NotNull MapCodec<A> orElseGet(final @NotNull Supplier<? extends A> value, final @NotNull UnaryOperator<String> onError) {
+        Objects.requireNonNull(value, "value");
+        Objects.requireNonNull(onError, "onError");
         return mapResult(new ResultFunction<>() {
             @Override
             public <T> @NotNull DataResult<A> apply(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops,
@@ -329,6 +338,7 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
      */
     @ApiStatus.NonExtendable
     default @NotNull MapCodec<A> orElse(final @NotNull A value) {
+        Objects.requireNonNull(value, "value");
         return mapResult(new ResultFunction<>() {
             @Override
             public <T> @NotNull DataResult<A> apply(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops,
@@ -358,6 +368,7 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
      */
     @ApiStatus.NonExtendable
     default @NotNull MapCodec<A> orElseGet(final @NotNull Supplier<? extends A> value) {
+        Objects.requireNonNull(value, "value");
         return mapResult(new ResultFunction<>() {
             @Override
             public <T> @NotNull DataResult<A> apply(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops,
@@ -386,6 +397,7 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
      */
     @ApiStatus.NonExtendable
     default @NotNull MapCodec<A> withPartial(final @NotNull Supplier<A> value) {
+        Objects.requireNonNull(value, "value");
         return mapResult(new ResultFunction<>() {
             @Override
             public <T> @NotNull DataResult<A> apply(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops,
@@ -415,6 +427,7 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
      */
     @ApiStatus.NonExtendable
     default @NotNull MapCodec<A> mapResult(final @NotNull ResultFunction<A> function) {
+        Objects.requireNonNull(function, "function");
         return new MapCodec<>() {
             @Override
             public <T> @NotNull DataResult<A> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
@@ -486,6 +499,11 @@ public interface MapCodec<A> extends MapEncoder<A>, MapDecoder<A> {
      * @param <A> The value type.
      */
     record StandardCodec<A>(@NotNull MapCodec<A> codec) implements Codec<A> {
+
+        @SuppressWarnings("MissingJavadocMethod")
+        public StandardCodec {
+            Objects.requireNonNull(codec, "codec");
+        }
 
         @Override
         public <T> @NotNull DataResult<Pair<A, T>> decode(final @NotNull T input, final @NotNull DataOps<T> ops) {

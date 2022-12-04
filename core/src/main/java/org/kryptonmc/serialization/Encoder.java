@@ -13,6 +13,7 @@
  */
 package org.kryptonmc.serialization;
 
+import java.util.Objects;
 import java.util.function.Function;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -48,6 +49,7 @@ public interface Encoder<A> {
      * @return A new error encoder.
      */
     static <A> @NotNull Encoder<A> error(final @NotNull String error) {
+        Objects.requireNonNull(error, "error");
         return new Encoder<>() {
             @Override
             public <T> @NotNull DataResult<T> encode(final A input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
@@ -122,6 +124,7 @@ public interface Encoder<A> {
      */
     @ApiStatus.NonExtendable
     default <B> @NotNull Encoder<B> comap(final @NotNull Function<? super B, ? extends A> function) {
+        Objects.requireNonNull(function, "function");
         return new Encoder<>() {
             @Override
             public <T> @NotNull DataResult<T> encode(final B input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
@@ -152,6 +155,7 @@ public interface Encoder<A> {
      */
     @ApiStatus.NonExtendable
     default <B> @NotNull Encoder<B> flatComap(final @NotNull Function<? super B, ? extends DataResult<? extends A>> function) {
+        Objects.requireNonNull(function, "function");
         return new Encoder<>() {
             @Override
             public <T> @NotNull DataResult<T> encode(final B input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {
@@ -174,6 +178,7 @@ public interface Encoder<A> {
      */
     @ApiStatus.NonExtendable
     default @NotNull Encoder<A> withLifecycle(final @NotNull Lifecycle lifecycle) {
+        Objects.requireNonNull(lifecycle, "lifecycle");
         return new Encoder<>() {
             @Override
             public <T> @NotNull DataResult<T> encode(final A input, final @NotNull DataOps<T> ops, final @NotNull T prefix) {

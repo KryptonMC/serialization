@@ -15,6 +15,7 @@ package org.kryptonmc.serialization.codecs;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import org.jetbrains.annotations.NotNull;
@@ -34,6 +35,11 @@ import org.kryptonmc.util.Unit;
  * @param <A> The element type.
  */
 public record ListCodec<A>(@NotNull Codec<A> elementCodec) implements Codec<List<A>> {
+
+    @SuppressWarnings("MissingJavadocMethod")
+    public ListCodec {
+        Objects.requireNonNull(elementCodec, "elementCodec");
+    }
 
     @Override
     public <T> @NotNull DataResult<Pair<List<A>, T>> decode(final @NotNull T input, final @NotNull DataOps<T> ops) {

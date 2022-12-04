@@ -13,6 +13,7 @@
  */
 package org.kryptonmc.serialization.codecs;
 
+import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 import org.kryptonmc.serialization.DataOps;
 import org.kryptonmc.serialization.DataResult;
@@ -31,6 +32,12 @@ import org.kryptonmc.util.Pair;
  * @see PairCodec
  */
 public record PairMapCodec<F, S>(@NotNull MapCodec<F> first, @NotNull MapCodec<S> second) implements MapCodec<Pair<F, S>> {
+
+    @SuppressWarnings("MissingJavadocMethod")
+    public PairMapCodec {
+        Objects.requireNonNull(first, "first");
+        Objects.requireNonNull(second, "second");
+    }
 
     @Override
     public <T> @NotNull DataResult<Pair<F, S>> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {

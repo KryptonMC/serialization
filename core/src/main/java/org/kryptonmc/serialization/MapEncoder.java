@@ -13,6 +13,7 @@
  */
 package org.kryptonmc.serialization;
 
+import java.util.Objects;
 import java.util.function.Function;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -55,6 +56,7 @@ public interface MapEncoder<A> {
      */
     @ApiStatus.NonExtendable
     default <B> @NotNull MapEncoder<B> comap(final @NotNull Function<? super B, ? extends A> function) {
+        Objects.requireNonNull(function, "function");
         return new MapEncoder<>() {
             @Override
             public <T> @NotNull RecordBuilder<T> encode(final B input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> prefix) {
@@ -86,6 +88,7 @@ public interface MapEncoder<A> {
      */
     @ApiStatus.NonExtendable
     default <B> @NotNull MapEncoder<B> flatComap(final @NotNull Function<? super B, ? extends DataResult<? extends A>> function) {
+        Objects.requireNonNull(function, "function");
         return new MapEncoder<>() {
             @Override
             public <T> @NotNull RecordBuilder<T> encode(final B input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> prefix) {
@@ -110,6 +113,7 @@ public interface MapEncoder<A> {
      */
     @ApiStatus.NonExtendable
     default @NotNull MapEncoder<A> withLifecycle(final @NotNull Lifecycle lifecycle) {
+        Objects.requireNonNull(lifecycle, "lifecycle");
         return new MapEncoder<>() {
             @Override
             public <T> @NotNull RecordBuilder<T> encode(final A input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> prefix) {

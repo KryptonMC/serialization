@@ -14,6 +14,7 @@
 package org.kryptonmc.serialization.codecs;
 
 import java.util.Map;
+import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 import org.kryptonmc.serialization.Codec;
 import org.kryptonmc.serialization.DataOps;
@@ -31,6 +32,12 @@ import org.kryptonmc.serialization.RecordBuilder;
  * @param <V> The value type.
  */
 public record SimpleMapCodec<K, V>(@NotNull Codec<K> keyCodec, @NotNull Codec<V> valueCodec) implements BaseMapCodec<K, V>, MapCodec<Map<K, V>> {
+
+    @SuppressWarnings("MissingJavadocMethod")
+    public SimpleMapCodec {
+        Objects.requireNonNull(keyCodec, "keyCodec");
+        Objects.requireNonNull(valueCodec, "valueCodec");
+    }
 
     @Override
     public <T> @NotNull DataResult<Map<K, V>> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {

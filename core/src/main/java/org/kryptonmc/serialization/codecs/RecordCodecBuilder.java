@@ -13,6 +13,7 @@
  */
 package org.kryptonmc.serialization.codecs;
 
+import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.jetbrains.annotations.NotNull;
@@ -208,9 +209,9 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
 
     private RecordCodecBuilder(final @NotNull Function<O, F> getter, final @NotNull Function<O, MapEncoder<F>> encoder,
                                final @NotNull MapDecoder<F> decoder) {
-        this.getter = getter;
-        this.encoder = encoder;
-        this.decoder = decoder;
+        this.getter = Objects.requireNonNull(getter, "getter");
+        this.encoder = Objects.requireNonNull(encoder, "encoder");
+        this.decoder = Objects.requireNonNull(decoder, "decoder");
     }
 
     /**

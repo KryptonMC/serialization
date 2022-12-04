@@ -13,6 +13,7 @@
  */
 package org.kryptonmc.serialization.codecs;
 
+import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 import org.kryptonmc.serialization.Codec;
 import org.kryptonmc.serialization.DataOps;
@@ -40,6 +41,12 @@ import org.kryptonmc.util.Pair;
  * @param <R> The right type.
  */
 public record EitherCodec<L, R>(@NotNull Codec<L> left, @NotNull Codec<R> right) implements Codec<Either<L, R>> {
+
+    @SuppressWarnings("MissingJavadocMethod")
+    public EitherCodec {
+        Objects.requireNonNull(left, "left");
+        Objects.requireNonNull(right, "right");
+    }
 
     @Override
     public <T> @NotNull DataResult<Pair<Either<L, R>, T>> decode(final @NotNull T input, final @NotNull DataOps<T> ops) {

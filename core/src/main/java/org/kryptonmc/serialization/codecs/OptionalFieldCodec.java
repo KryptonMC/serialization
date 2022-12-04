@@ -13,6 +13,7 @@
  */
 package org.kryptonmc.serialization.codecs;
 
+import java.util.Objects;
 import java.util.Optional;
 import org.jetbrains.annotations.NotNull;
 import org.kryptonmc.serialization.Codec;
@@ -35,6 +36,12 @@ import org.kryptonmc.serialization.RecordBuilder;
  * @param <A> The field value type.
  */
 public record OptionalFieldCodec<A>(@NotNull String name, @NotNull Codec<A> elementCodec) implements MapCodec<Optional<A>> {
+
+    @SuppressWarnings("MissingJavadocMethod")
+    public OptionalFieldCodec {
+        Objects.requireNonNull(name, "name");
+        Objects.requireNonNull(elementCodec, "elementCodec");
+    }
 
     @Override
     public <T> @NotNull DataResult<Optional<A>> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {

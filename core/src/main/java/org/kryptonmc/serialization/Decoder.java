@@ -13,6 +13,7 @@
  */
 package org.kryptonmc.serialization;
 
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -38,6 +39,7 @@ public interface Decoder<A> {
      * @return A new unit decoder.
      */
     static <A> @NotNull MapDecoder<A> unit(final @NotNull A instance) {
+        Objects.requireNonNull(instance, "instance");
         return new MapDecoder<>() {
 
             private final DataResult<A> result = DataResult.success(instance);
@@ -63,6 +65,7 @@ public interface Decoder<A> {
      * @return A new unit decoder.
      */
     static <A> @NotNull MapDecoder<A> unit(final @NotNull Supplier<A> instance) {
+        Objects.requireNonNull(instance, "instance");
         return new MapDecoder<>() {
             @Override
             public <T> @NotNull DataResult<A> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
@@ -85,6 +88,7 @@ public interface Decoder<A> {
      * @return A new error decoder.
      */
     static <A> @NotNull Decoder<A> error(final @NotNull String error) {
+        Objects.requireNonNull(error, "error");
         return new Decoder<>() {
             @Override
             public <T> @NotNull DataResult<Pair<A, T>> decode(final T input, final @NotNull DataOps<T> ops) {
@@ -184,6 +188,7 @@ public interface Decoder<A> {
      */
     @ApiStatus.NonExtendable
     default <B> @NotNull Decoder<B> map(final @NotNull Function<? super A, ? extends B> mapper) {
+        Objects.requireNonNull(mapper, "mapper");
         return new Decoder<>() {
             @Override
             public <T> @NotNull DataResult<Pair<B, T>> decode(final T input, final @NotNull DataOps<T> ops) {
@@ -211,6 +216,7 @@ public interface Decoder<A> {
      */
     @ApiStatus.NonExtendable
     default <B> @NotNull Decoder<B> flatMap(final @NotNull Function<? super A, ? extends DataResult<? extends B>> mapper) {
+        Objects.requireNonNull(mapper, "mapper");
         return new Decoder<>() {
             @Override
             public <T> @NotNull DataResult<Pair<B, T>> decode(final T input, final @NotNull DataOps<T> ops) {
@@ -233,6 +239,7 @@ public interface Decoder<A> {
      */
     @ApiStatus.NonExtendable
     default @NotNull Decoder<A> promotePartial(final @NotNull Consumer<String> onError) {
+        Objects.requireNonNull(onError, "onError");
         return new Decoder<>() {
             @Override
             public <T> @NotNull DataResult<Pair<A, T>> decode(final T input, final @NotNull DataOps<T> ops) {
@@ -255,6 +262,7 @@ public interface Decoder<A> {
      */
     @ApiStatus.NonExtendable
     default @NotNull Decoder<A> withLifecycle(final @NotNull Lifecycle lifecycle) {
+        Objects.requireNonNull(lifecycle, "lifecycle");
         return new Decoder<>() {
             @Override
             public <T> @NotNull DataResult<Pair<A, T>> decode(final T input, final @NotNull DataOps<T> ops) {

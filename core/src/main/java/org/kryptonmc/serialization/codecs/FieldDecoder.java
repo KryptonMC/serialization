@@ -13,6 +13,7 @@
  */
 package org.kryptonmc.serialization.codecs;
 
+import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 import org.kryptonmc.serialization.DataOps;
 import org.kryptonmc.serialization.DataResult;
@@ -30,6 +31,12 @@ import org.kryptonmc.serialization.MapLike;
  * @param <A> The output type.
  */
 public record FieldDecoder<A>(@NotNull String name, @NotNull Decoder<A> elementDecoder) implements MapDecoder<A> {
+
+    @SuppressWarnings("MissingJavadocMethod")
+    public FieldDecoder {
+        Objects.requireNonNull(name, "name");
+        Objects.requireNonNull(elementDecoder, "elementDecoder");
+    }
 
     @Override
     public <T> @NotNull DataResult<A> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {

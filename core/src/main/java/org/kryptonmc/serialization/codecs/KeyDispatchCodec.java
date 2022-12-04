@@ -13,6 +13,7 @@
  */
 package org.kryptonmc.serialization.codecs;
 
+import java.util.Objects;
 import java.util.function.Function;
 import org.jetbrains.annotations.NotNull;
 import org.kryptonmc.serialization.Codec;
@@ -84,11 +85,11 @@ public final class KeyDispatchCodec<K, V> implements MapCodec<V> {
                              final @NotNull Function<? super V, ? extends DataResult<? extends K>> type,
                              final @NotNull Function<? super K, ? extends DataResult<? extends Decoder<? extends V>>> decoder,
                              final @NotNull Function<? super V, ? extends DataResult<? extends Encoder<V>>> encoder, final boolean assumeMap) {
-        this.typeKey = typeKey;
-        this.keyCodec = keyCodec;
-        this.type = type;
-        this.decoder = decoder;
-        this.encoder = encoder;
+        this.typeKey = Objects.requireNonNull(typeKey, "typeKey");
+        this.keyCodec = Objects.requireNonNull(keyCodec, "keyCodec");
+        this.type = Objects.requireNonNull(type, "type");
+        this.decoder = Objects.requireNonNull(decoder, "decoder");
+        this.encoder = Objects.requireNonNull(encoder, "encoder");
         this.assumeMap = assumeMap;
     }
 

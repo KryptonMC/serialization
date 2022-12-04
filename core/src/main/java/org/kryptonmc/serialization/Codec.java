@@ -286,6 +286,9 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
      * @return A new codec.
      */
     static <A> @NotNull Codec<A> of(final @NotNull Encoder<A> encoder, final @NotNull Decoder<A> decoder, final @NotNull String name) {
+        Objects.requireNonNull(encoder, "encoder");
+        Objects.requireNonNull(decoder, "decoder");
+        Objects.requireNonNull(name, "name");
         return new Codec<>() {
             @Override
             public <T> @NotNull DataResult<Pair<A, T>> decode(final T input, final @NotNull DataOps<T> ops) {
@@ -656,6 +659,7 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
 
     @Override
     default @NotNull Codec<A> withLifecycle(final @NotNull Lifecycle lifecycle) {
+        Objects.requireNonNull(lifecycle, "lifecycle");
         return new Codec<>() {
             @Override
             public <T> @NotNull DataResult<Pair<A, T>> decode(final T input, final @NotNull DataOps<T> ops) {
@@ -770,6 +774,7 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
      */
     @ApiStatus.NonExtendable
     default @NotNull Codec<A> orElse(final @NotNull A value, final @NotNull UnaryOperator<String> onError) {
+        Objects.requireNonNull(onError, "onError");
         return mapResult(new ResultFunction<>() {
             @Override
             public <T> @NotNull DataResult<Pair<A, T>> apply(final T input, final @NotNull DataOps<T> ops,
@@ -816,6 +821,8 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
      */
     @ApiStatus.NonExtendable
     default @NotNull Codec<A> orElseGet(final @NotNull Supplier<A> value, final @NotNull UnaryOperator<String> onError) {
+        Objects.requireNonNull(value, "value");
+        Objects.requireNonNull(onError, "onError");
         return mapResult(new ResultFunction<>() {
             @Override
             public <T> @NotNull DataResult<Pair<A, T>> apply(final T input, final @NotNull DataOps<T> ops,
@@ -844,6 +851,7 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
      */
     @ApiStatus.NonExtendable
     default @NotNull Codec<A> orElse(final @NotNull A value) {
+        Objects.requireNonNull(value, "value");
         return mapResult(new ResultFunction<>() {
             @Override
             public <T> @NotNull DataResult<Pair<A, T>> apply(final T input, final @NotNull DataOps<T> ops,
@@ -874,6 +882,7 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
      */
     @ApiStatus.NonExtendable
     default @NotNull Codec<A> orElseGet(final @NotNull Supplier<A> value) {
+        Objects.requireNonNull(value, "value");
         return mapResult(new ResultFunction<>() {
             @Override
             public <T> @NotNull DataResult<Pair<A, T>> apply(final T input, final @NotNull DataOps<T> ops,
@@ -902,6 +911,7 @@ public interface Codec<A> extends Encoder<A>, Decoder<A> {
      */
     @ApiStatus.NonExtendable
     default @NotNull Codec<A> mapResult(final ResultFunction<A> function) {
+        Objects.requireNonNull(function, "function");
         return new Codec<>() {
             @Override
             public <T> @NotNull DataResult<Pair<A, T>> decode(final T input, final @NotNull DataOps<T> ops) {

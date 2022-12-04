@@ -13,6 +13,7 @@
  */
 package org.kryptonmc.serialization;
 
+import java.util.Objects;
 import java.util.function.Function;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -67,6 +68,7 @@ public interface MapDecoder<A> {
      */
     @ApiStatus.NonExtendable
     default <B> @NotNull MapDecoder<B> map(final @NotNull Function<? super A, ? extends B> mapper) {
+        Objects.requireNonNull(mapper, "mapper");
         return new MapDecoder<>() {
             @Override
             public <T> @NotNull DataResult<B> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {
@@ -94,6 +96,7 @@ public interface MapDecoder<A> {
      * @return The resulting mapped decoder.
      */
     default <B> @NotNull MapDecoder<B> flatMap(final @NotNull Function<? super A, ? extends DataResult<? extends B>> mapper) {
+        Objects.requireNonNull(mapper, "mapper");
         return new MapDecoder<>() {
             @SuppressWarnings("unchecked")
             @Override
@@ -116,6 +119,7 @@ public interface MapDecoder<A> {
      * @return A new map decoder.
      */
     default @NotNull MapDecoder<A> withLifecycle(final @NotNull Lifecycle lifecycle) {
+        Objects.requireNonNull(lifecycle, "lifecycle");
         return new MapDecoder<>() {
             @Override
             public <T> @NotNull DataResult<A> decode(final @NotNull MapLike<T> input, final @NotNull DataOps<T> ops) {

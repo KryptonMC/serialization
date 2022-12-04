@@ -8,12 +8,17 @@
  */
 package org.kryptonmc.util;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.jetbrains.annotations.NotNull;
 
 record Right<L, R>(R value) implements Either<L, R> {
+
+    Right {
+        Objects.requireNonNull(value, "value");
+    }
 
     @Override
     public @NotNull Optional<L> left() {

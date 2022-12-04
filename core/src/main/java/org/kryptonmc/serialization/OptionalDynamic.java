@@ -14,6 +14,7 @@
 package org.kryptonmc.serialization;
 
 import java.nio.ByteBuffer;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.IntStream;
@@ -40,7 +41,7 @@ public final class OptionalDynamic<T> extends DynamicLike<T> {
      */
     public OptionalDynamic(final @NotNull DataOps<T> ops, final @NotNull DataResult<Dynamic<T>> delegate) {
         super(ops);
-        this.delegate = delegate;
+        this.delegate = Objects.requireNonNull(delegate, "delegate");
     }
 
     /**

@@ -14,6 +14,7 @@
 package org.kryptonmc.serialization;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Stream;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -37,6 +38,8 @@ public interface MapLike<T> {
      * @return A wrapper around the backing map.
      */
     static <T> @NotNull MapLike<T> forMap(final @NotNull Map<T, T> map, final @NotNull DataOps<T> ops) {
+        Objects.requireNonNull(map, "map");
+        Objects.requireNonNull(ops, "ops");
         return new MapLike<>() {
             @Override
             public @Nullable T get(final @NotNull T key) {

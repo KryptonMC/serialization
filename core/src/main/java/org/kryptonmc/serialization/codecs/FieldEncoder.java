@@ -13,6 +13,7 @@
  */
 package org.kryptonmc.serialization.codecs;
 
+import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 import org.kryptonmc.serialization.DataOps;
 import org.kryptonmc.serialization.Encoder;
@@ -28,6 +29,12 @@ import org.kryptonmc.serialization.RecordBuilder;
  * @param <A> The input type.
  */
 public record FieldEncoder<A>(@NotNull String name, @NotNull Encoder<A> elementEncoder) implements MapEncoder<A> {
+
+    @SuppressWarnings("MissingJavadocMethod")
+    public FieldEncoder {
+        Objects.requireNonNull(name, "name");
+        Objects.requireNonNull(elementEncoder, "elementEncoder");
+    }
 
     @Override
     public <T> @NotNull RecordBuilder<T> encode(final @NotNull A input, final @NotNull DataOps<T> ops, final @NotNull RecordBuilder<T> prefix) {

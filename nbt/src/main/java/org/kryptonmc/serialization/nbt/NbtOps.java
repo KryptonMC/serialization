@@ -9,7 +9,6 @@
 package org.kryptonmc.serialization.nbt;
 
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.google.common.collect.PeekingIterator;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
