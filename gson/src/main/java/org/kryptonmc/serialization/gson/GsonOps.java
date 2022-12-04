@@ -261,8 +261,8 @@ public final class GsonOps implements DataOps<JsonElement> {
         return "JSON";
     }
 
-    private static @Nullable JsonElement orNull(final @NotNull JsonElement element) {
-        return element.isJsonNull() ? null : element;
+    private static @Nullable JsonElement orNull(final @Nullable JsonElement element) {
+        return element == null || element.isJsonNull() ? null : element;
     }
 
     private static <R> @NotNull DataResult<R> error(final @NotNull String methodName, final @NotNull String name, final @NotNull JsonElement input) {
